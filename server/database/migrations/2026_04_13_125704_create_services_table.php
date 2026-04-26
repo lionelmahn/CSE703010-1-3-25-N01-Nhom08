@@ -9,14 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void {
-    Schema::create('services', function (Blueprint $table) {
-        $table->id();
-        $table->string('name'); // Tên: Nhổ răng, Trám răng...
-        $table->decimal('price', 15, 2); // Giá tiền
-        $table->integer('commission_rate'); // % Hoa hồng cho bác sĩ
-        $table->timestamps();
-    });
+    public function up(): void 
+    {
+        Schema::create('services', function (Blueprint $table) {
+            $table->id();
+            $table->string('service_code')->unique(); // Mã dịch vụ (bắt buộc)
+            $table->string('name'); // Tên dịch vụ
+            $table->string('service_group'); // Nhóm dịch vụ (Cột bị thiếu nè)
+            $table->text('description')->nullable(); // Mô tả
+            $table->decimal('price', 15, 2)->nullable(); // Giá tiền
+            $table->integer('duration_minutes')->default(30); // Thời lượng thực hiện
+            $table->enum('status', ['draft', 'active', 'hidden', 'inactive'])->default('draft'); // Trạng thái
+            $table->enum('visibility', ['public', 'internal'])->default('internal'); // Tầm nhìn
+            $table->integer('commission_rate')->default(0); // Tỉ lệ hoa hồng (của Minh)
+            $table->timestamps();
+        });
     }
 
     /**

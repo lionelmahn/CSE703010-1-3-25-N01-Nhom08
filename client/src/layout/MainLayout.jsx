@@ -34,9 +34,8 @@ const MainLayout = () => {
   const allMenuItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Tổng quan', path: '/dashboard', roles: ['admin', 'bac_si', 'le_tan', 'ke_toan', 'benh_nhan'] },
 
-    { icon: <ShieldCheck size={20} />, label: 'Quản lý tài khoản', path: '/users', roles: ['admin'], permission: 'users.view' },
-    { icon: <ShieldCheck size={20} />, label: 'Phân quyền', path: '/permissions', roles: ['admin'], permission: 'users.view' },
-    { icon: <Users size={20} />, label: 'Quản lý nhân sự', path: '/staff', roles: ['admin'], permission: 'staff.view' },
+    { icon: <ShieldCheck size={20} />, label: 'Quản lý tài khoản', path: '/users', roles: ['admin'] },
+    { icon: <Users size={20} />, label: 'Quản lý nhân sự', path: '/staff', roles: ['admin'] },
     { icon: <Settings size={20} />, label: 'Cài đặt hệ thống', path: '/settings', roles: ['admin'] },
 
     { icon: <Users size={20} />, label: 'Danh sách bệnh nhân', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },

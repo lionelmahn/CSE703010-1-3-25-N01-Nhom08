@@ -28,6 +28,8 @@ import InvoiceManagement from '@/page/InvoiceManagement';
 import RevenueReport from '@/page/RevenueReport';
 import MyAppointments from '@/page/MyAppointments';
 import HealthRecords from '@/page/HealthRecords';
+import ServiceManagement from '@/page/ServiceManagement'; 
+
 
 // Component bảo vệ route — chuyển hướng về login nếu chưa đăng nhập
 const ProtectedRoute = ({ children }) => {
@@ -75,6 +77,7 @@ const AppRouter = () => {
         <Route path="dashboard" element={<DashboardByRole />} />
 
         {/* Admin Routes */}
+
         <Route path="users" element={<PermissionRoute permission="users.view"><UserManagement /></PermissionRoute>} />
         <Route path="permissions" element={<PermissionRoute><PermissionManagement /></PermissionRoute>} />
         <Route path="staff" element={<PermissionRoute permission="staff.view"><StaffManagement /></PermissionRoute>} />
@@ -84,6 +87,16 @@ const AppRouter = () => {
         <Route path="patients" element={<PermissionRoute permission="patients.view"><PatientList /></PermissionRoute>} />
         <Route path="appointments" element={<PermissionRoute permission="appointments.view"><Appointments /></PermissionRoute>} />
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
+
+        <Route path="users" element={<UserManagement />} />
+        <Route path="staff" element={<StaffManagement />} />
+        <Route path="settings" element={<SystemSettings />} />
+        <Route path="services" element={<ServiceManagement />} />
+        {/* Shared Routes (Admin, Bác sĩ, Lễ tân) */}
+        <Route path="patients" element={<PatientList />} />
+        <Route path="appointments" element={<Appointments />} />
+        <Route path="medical-records" element={<MedicalRecords />} />
+
 
         {/* Kế toán Routes */}
         <Route path="invoices" element={<PermissionRoute permission="finance.view"><InvoiceManagement /></PermissionRoute>} />

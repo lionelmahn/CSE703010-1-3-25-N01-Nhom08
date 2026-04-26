@@ -48,5 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/roles', [UserController::class, 'getAllRoles']);
         Route::get('/admin/dashboard-stats', [DashboardController::class, 'getAdminStats']);
+
+        // === Quản lý dịch vụ nha khoa (UC 4.1) ===
+        Route::get('/services', [\App\Http\Controllers\Api\ServiceController::class, 'index']);
+        Route::post('/services', [\App\Http\Controllers\Api\ServiceController::class, 'store']);
+        Route::put('/services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'update'])->whereNumber('service');
+        Route::delete('/services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'destroy'])->whereNumber('service');
     });
 });
