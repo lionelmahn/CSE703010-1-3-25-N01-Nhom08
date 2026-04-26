@@ -24,16 +24,24 @@ C:.
 |   |   |           AuthController.php
 |   |   |           DashboardController.php
 |   |   |           PasswordResetController.php
+|   |   |           PermissionController.php
 |   |   |           ServiceController.php
 |   |   |           UserController.php
 |   |   |           
-|   |   \---Middleware
-|   |           RoleMiddleware.php
+|   |   +---Middleware
+|   |   |       RoleMiddleware.php
+|   |   |       
+|   |   \---Requests
+|   |           StoreServiceRequest.php
+|   |           UpdateServiceRequest.php
 |   |           
 |   +---Models
 |   |       AuditLog.php
+|   |       Permission.php
 |   |       Role.php
 |   |       Service.php
+|   |       ServiceAttachment.php
+|   |       Specialty.php
 |   |       User.php
 |   |       
 |   +---Providers
@@ -82,9 +90,14 @@ C:.
 |   |       2026_04_13_130012_create_patients_table.php
 |   |       2026_04_21_100108_create_audit_logs_table.php
 |   |       2026_04_21_110610_create_roles_table.php
+|   |       2026_04_25_173032_create_permissions_table.php
+|   |       2026_04_26_152359_create_specialties_table.php
+|   |       2026_04_26_152400_create_service_specialty_table.php
+|   |       2026_04_26_152520_create_service_attachments_table.php
 |   |       
 |   \---seeders
 |           DatabaseSeeder.php
+|           PermissionSeeder.php
 |           RoleSeeder.php
 |           ServiceSeeder.php
 |           UserSeeder.php

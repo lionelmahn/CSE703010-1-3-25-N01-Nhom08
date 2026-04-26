@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
         // 3. Seed tài khoản nhân sự mẫu
         $this->call(UserSeeder::class);
 
-        // 3. Seed dịch vụ mẫu (phải sau khi có chuyên môn để gán)
+        // 4. Seed dịch vụ mẫu (phải sau khi có chuyên môn để gán)
         $this->call(ServiceSeeder::class);
     }
 }

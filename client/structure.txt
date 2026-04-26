@@ -11537,6 +11537,7 @@ C:.
     |       authApi.js
     |       axiosClient.js
     |       dashboardApi.js
+    |       permissionApi.js
     |       userApi.js
     |       
     +---assets
@@ -11544,9 +11545,21 @@ C:.
     |       react.svg
     |       vite.svg
     |       
+    +---components
+    |   \---ui
+    |           button.jsx
+    |           card.jsx
+    |           checkbox.jsx
+    |           input.jsx
+    |           select.jsx
+    |           tabs.jsx
+    |           toast.jsx
+    |           toaster.jsx
+    |           
     +---features
     |   \---user-management
     |       +---components
+    |       |       ServiceFormModal.jsx
     |       |       UserFormModal.jsx
     |       |       UserHistoryModal.jsx
     |       |       UserManagementTable.jsx
@@ -11559,6 +11572,7 @@ C:.
     |               userManagementService.js
     |               
     +---hooks
+    |       use-toast.js
     |       useAuth.js
     |       
     +---layout
@@ -11580,7 +11594,9 @@ C:.
     |       MyAppointments.jsx
     |       PatientDashboard.jsx
     |       PatientList.jsx
+    |       PermissionManagement.jsx
     |       RevenueReport.jsx
+    |       ServiceManagement.jsx
     |       StaffDashboard.jsx
     |       StaffManagement.jsx
     |       SystemSettings.jsx

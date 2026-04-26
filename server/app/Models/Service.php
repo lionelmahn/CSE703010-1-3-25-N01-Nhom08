@@ -15,7 +15,9 @@ class Service extends Model
         'price', 
         'duration_minutes', 
         'status', 
-        'visibility'
+        'visibility',
+        'commission_rate'
+        
         
     ];
 

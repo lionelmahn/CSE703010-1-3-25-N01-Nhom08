@@ -36,7 +36,9 @@ const MainLayout = () => {
 
     { icon: <ShieldCheck size={20} />, label: 'Quản lý tài khoản', path: '/users', roles: ['admin'] },
     { icon: <Users size={20} />, label: 'Quản lý nhân sự', path: '/staff', roles: ['admin'] },
+    { icon: <ClipboardList size={20} />, label: 'Quản lý dịch vụ', path: '/services', roles: ['admin', 'bac_si'], permission: 'services.view' },
     { icon: <Settings size={20} />, label: 'Cài đặt hệ thống', path: '/settings', roles: ['admin'] },
+
 
     { icon: <Users size={20} />, label: 'Danh sách bệnh nhân', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },
     { icon: <Calendar size={20} />, label: 'Lịch hẹn phòng khám', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },

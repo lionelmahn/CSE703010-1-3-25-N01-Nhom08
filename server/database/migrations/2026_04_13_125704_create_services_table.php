@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('duration_minutes')->default(30); // Thời lượng thực hiện
             $table->enum('status', ['draft', 'active', 'hidden', 'inactive'])->default('draft'); // Trạng thái
             $table->enum('visibility', ['public', 'internal'])->default('internal'); // Tầm nhìn
-            $table->integer('commission_rate')->default(0); // Tỉ lệ hoa hồng (của Minh)
+            $table->integer('commission_rate')->default(0); // Tỉ lệ hoa hồng 
             $table->timestamps();
         });
     }
