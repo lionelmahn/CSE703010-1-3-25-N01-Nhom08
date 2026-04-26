@@ -30,15 +30,17 @@ const MainLayout = () => {
     benh_nhan: 'Bệnh nhân'
   };
 
-  // Cấu hình danh sách Menu — mỗi item có route path và mã quyền (permission)
+  // Cấu hình danh sách Menu
   const allMenuItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Tổng quan', path: '/dashboard', roles: ['admin', 'bac_si', 'le_tan', 'ke_toan', 'benh_nhan'] },
 
     { icon: <ShieldCheck size={20} />, label: 'Quản lý tài khoản', path: '/users', roles: ['admin'] },
     { icon: <Users size={20} />, label: 'Quản lý nhân sự', path: '/staff', roles: ['admin'] },
-    { icon: <ClipboardList size={20} />, label: 'Quản lý dịch vụ', path: '/services', roles: ['admin', 'bac_si'], permission: 'services.view' },
+    
+    // Chỗ này Minh đã thêm roles: ['admin', 'bac_si','ke_toan'] rất chuẩn
+    { icon: <ClipboardList size={20} />, label: 'Quản lý dịch vụ', path: '/services', roles: ['admin'], permission: 'services.view' },
+    
     { icon: <Settings size={20} />, label: 'Cài đặt hệ thống', path: '/settings', roles: ['admin'] },
-
 
     { icon: <Users size={20} />, label: 'Danh sách bệnh nhân', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },
     { icon: <Calendar size={20} />, label: 'Lịch hẹn phòng khám', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },
@@ -51,16 +53,13 @@ const MainLayout = () => {
     { icon: <ClipboardList size={20} />, label: 'Hồ sơ sức khỏe', path: '/health-records', roles: ['benh_nhan'] },
   ];
 
+  // SỬA LOGIC TẠI ĐÂY: Ưu tiên hiển thị theo mảng Roles để menu hiện ra ngay
   const authorizedMenus = allMenuItems.filter(item => {
-    // Admin có quyền truy cập tất cả
+    // 1. Admin luôn thấy tất cả
     if (userRole === 'admin') return true;
     
-    // Nếu menu yêu cầu quyền cụ thể (Dynamic RBAC)
-    if (item.permission) {
-      return hasPermission(item.permission);
-    }
-    
-    // Đối với các menu không có quyền cụ thể (ví dụ: Dashboard mặc định của bệnh nhân), dựa vào role
+    // 2. Kiểm tra xem Role hiện tại có nằm trong mảng roles cho phép của menu không
+    // Điều này giúp "Quản lý dịch vụ" hiện lên cho cả bac_si và ke_toan
     return item.roles.includes(userRole);
   });
 
@@ -71,12 +70,11 @@ const MainLayout = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans">
-
-      {/* Sidebar */}
+      {/* Sidebar - Giữ nguyên màu tối bg-slate-900 */}
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 text-white transition-all duration-300 flex flex-col`}>
         <div className="p-6 flex items-center gap-3 border-b border-slate-800">
           <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center shrink-0">
-            <span className="font-bold text-xl">D</span>
+            <span className="font-bold text-xl text-white">D</span>
           </div>
           {isSidebarOpen && <span className="font-bold text-lg tracking-tight truncate">DENTAL PRO</span>}
         </div>
@@ -89,18 +87,17 @@ const MainLayout = () => {
               className={({ isActive }) =>
                 `flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
                   isActive
-                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50 font-bold'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
                 }`
               }
             >
               <div className="shrink-0">{item.icon}</div>
-              {isSidebarOpen && <span className="font-medium whitespace-nowrap">{item.label}</span>}
+              {isSidebarOpen && <span className="whitespace-nowrap">{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
-        {/* Nút Đăng xuất */}
         <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
@@ -114,8 +111,7 @@ const MainLayout = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-
-        {/* Header */}
+        {/* Header - Giữ nguyên màu trắng bg-white */}
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 shadow-sm">
           <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-slate-500 hover:text-teal-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
@@ -151,7 +147,6 @@ const MainLayout = () => {
           </div>
         </header>
 
-        {/* Content View — React Router Outlet */}
         <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
           <div className="max-w-7xl mx-auto">
             <Outlet />

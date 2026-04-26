@@ -14,7 +14,7 @@ class StoreServiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_code' => 'required|unique:services,service_code',
+            'service_code' => 'nullable', 
             'name' => 'required|string|max:255',
             'service_group' => 'required|string',
             'price' => 'nullable|numeric|min:0',
@@ -22,7 +22,8 @@ class StoreServiceRequest extends FormRequest
             'status' => 'required|in:draft,active,hidden,inactive',
             'visibility' => 'required|in:public,internal',
             'specialties' => 'nullable|array', // Mảng chứa ID các chuyên môn
-            'specialties.*' => 'exists:specialties,id'
+            'specialties.*' => 'exists:specialties,id',
+            'commission_rate' => 'nullable|integer|min:0|max:100', // Tỉ lệ hoa hồng từ 0% đến 100%
         ];
     }
 

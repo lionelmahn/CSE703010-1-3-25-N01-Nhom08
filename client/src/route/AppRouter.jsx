@@ -9,7 +9,7 @@ import MainLayout from '@/layout/MainLayout';
 import Login from '@/page/Login';
 import ForgotPassword from '@/page/ForgotPassword';
 
-// Dashboard Pages (theo vai trò)
+// Dashboard Pages
 import AdminDashboard from '@/page/AdminDashboard';
 import DoctorDashboard from '@/page/DoctorDashboard';
 import StaffDashboard from '@/page/StaffDashboard';
@@ -30,26 +30,33 @@ import MyAppointments from '@/page/MyAppointments';
 import HealthRecords from '@/page/HealthRecords';
 import ServiceManagement from '@/page/ServiceManagement'; 
 
-
-// Component bảo vệ route — chuyển hướng về login nếu chưa đăng nhập
+// Component bảo vệ route
 const ProtectedRoute = ({ children }) => {
   const { isLoggedIn } = useAuth();
   if (!isLoggedIn) return <Navigate to="/login" replace />;
   return children;
 };
 
-// Component bảo vệ dựa trên phân quyền (Dynamic RBAC)
+// Component bảo vệ dựa trên phân quyền
 const PermissionRoute = ({ permission, children }) => {
   const { hasPermission, userRole } = useAuth();
   
-  if (userRole === 'admin') return children; // Admin qua hết
+  if (userRole === 'admin') return children; // Admin luôn có quyền truy cập
+  
   if (permission && !hasPermission(permission)) {
-    return <div className="p-10 text-center font-medium text-red-500">Bạn không có quyền truy cập trang này.</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="p-10 text-center font-medium text-red-500 bg-red-50 rounded-2xl border border-red-100">
+          <p className="text-lg font-bold">Truy cập bị từ chối!</p>
+          <p className="text-sm text-gray-600 mt-2">Bạn không có quyền quản trị để thực hiện chức năng này.</p>
+        </div>
+      </div>
+    );
   }
   return children;
 };
 
-// Component chọn dashboard theo vai trò
+// Chọn dashboard theo vai trò
 const DashboardByRole = () => {
   const { userRole } = useAuth();
   switch (userRole) {
@@ -67,47 +74,39 @@ const AppRouter = () => {
 
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* 1. Public Routes */}
       <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* Protected Routes — Bọc trong MainLayout */}
+      {/* 2. Protected Routes — Bọc trong MainLayout */}
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardByRole />} />
 
-        {/* Admin Routes */}
-
+        {/* --- NHÓM ADMIN (CHỈ ADMIN MỚI VÀO ĐƯỢC) --- */}
+        {/* Minh lưu ý: Trang Dịch vụ đã được đưa về đúng vị trí dành cho Quản trị viên */}
+        <Route path="services" element={<PermissionRoute permission="services.view"><ServiceManagement /></PermissionRoute>} />
+        
         <Route path="users" element={<PermissionRoute permission="users.view"><UserManagement /></PermissionRoute>} />
         <Route path="permissions" element={<PermissionRoute><PermissionManagement /></PermissionRoute>} />
         <Route path="staff" element={<PermissionRoute permission="staff.view"><StaffManagement /></PermissionRoute>} />
         <Route path="settings" element={<PermissionRoute><SystemSettings /></PermissionRoute>} />
 
-        {/* Shared Routes */}
+        {/* --- NHÓM DÙNG CHUNG (Theo mã quyền cụ thể) --- */}
         <Route path="patients" element={<PermissionRoute permission="patients.view"><PatientList /></PermissionRoute>} />
         <Route path="appointments" element={<PermissionRoute permission="appointments.view"><Appointments /></PermissionRoute>} />
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
 
-        <Route path="users" element={<UserManagement />} />
-        <Route path="staff" element={<StaffManagement />} />
-        <Route path="settings" element={<SystemSettings />} />
-        <Route path="services" element={<ServiceManagement />} />
-        {/* Shared Routes (Admin, Bác sĩ, Lễ tân) */}
-        <Route path="patients" element={<PatientList />} />
-        <Route path="appointments" element={<Appointments />} />
-        <Route path="medical-records" element={<MedicalRecords />} />
-
-
-        {/* Kế toán Routes */}
+        {/* --- NHÓM KẾ TOÁN --- */}
         <Route path="invoices" element={<PermissionRoute permission="finance.view"><InvoiceManagement /></PermissionRoute>} />
         <Route path="revenue" element={<PermissionRoute permission="reports.view"><RevenueReport /></PermissionRoute>} />
 
-        {/* Bệnh nhân Routes */}
+        {/* --- NHÓM BỆNH NHÂN --- */}
         <Route path="my-appointments" element={<MyAppointments />} />
         <Route path="health-records" element={<HealthRecords />} />
       </Route>
 
-      {/* Catch-all — Redirect */}
+      {/* 3. Catch-all */}
       <Route path="*" element={<Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />} />
     </Routes>
   );

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Upload, CheckCircle } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 
 const ServiceFormModal = ({ service, onClose, onSuccess }) => {
     const [formData, setFormData] = useState(service ? {
         ...service,
         specialties: service.specialties?.map(s => s.id) || []
     } : {
-        service_code: '',
+        service_code: '', // Backend sẽ tự ghi đè, để trống ở đây
         name: '',
         service_group: 'Điều trị',
         description: '',
@@ -26,7 +26,6 @@ const ServiceFormModal = ({ service, onClose, onSuccess }) => {
     const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
     useEffect(() => {
-        // Lấy danh sách chuyên môn để hiển thị checkbox
         const fetchSpecialties = async () => {
             try {
                 const res = await axios.get(`${API_URL}/specialties`, {
@@ -56,7 +55,6 @@ const ServiceFormModal = ({ service, onClose, onSuccess }) => {
         setLoading(true);
         setError('');
 
-        // Quy tắc 6: Kiểm tra tại Frontend
         if (formData.status === 'active' && (!formData.price || formData.specialties.length === 0)) {
             setError("Để 'Đang áp dụng', dịch vụ bắt buộc phải có giá và ít nhất 1 chuyên môn.");
             setLoading(false);
@@ -64,16 +62,17 @@ const ServiceFormModal = ({ service, onClose, onSuccess }) => {
         }
 
         const data = new FormData();
-        // Đưa dữ liệu chữ vào FormData
         Object.keys(formData).forEach(key => {
             if (key === 'specialties') {
                 formData.specialties.forEach(id => data.append('specialties[]', id));
+            } else if (key === 'service_code' && !service) {
+                // Nếu là thêm mới, không gửi mã dịch vụ lên để Backend tự sinh
+                return;
             } else {
                 data.append(key, formData[key] || '');
             }
         });
 
-        // Đưa file vào FormData
         selectedFiles.forEach(file => {
             data.append('attachments[]', file);
         });
@@ -87,7 +86,7 @@ const ServiceFormModal = ({ service, onClose, onSuccess }) => {
             };
 
             if (service) {
-                data.append('_method', 'PUT'); // Cần thiết khi dùng POST để giả lập PUT gửi kèm file
+                data.append('_method', 'PUT');
                 await axios.post(`${API_URL}/services/${service.id}`, data, config);
             } else {
                 await axios.post(`${API_URL}/services`, data, config);
@@ -112,12 +111,21 @@ const ServiceFormModal = ({ service, onClose, onSuccess }) => {
                     {error && <div className="p-3 text-sm text-red-700 bg-red-100 rounded-lg">{error}</div>}
 
                     <div className="grid grid-cols-2 gap-4">
+                        {/* PHẦN SỬA: MÃ DỊCH VỤ TỰ SINH */}
                         <div>
-                            <label className="block mb-1 text-sm font-semibold text-gray-700">Mã dịch vụ *</label>
-                            <input type="text" required disabled={!!service} value={formData.service_code}
-                                onChange={e => setFormData({...formData, service_code: e.target.value})}
-                                className="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500" />
+                            <label className="block mb-1 text-sm font-semibold text-gray-700">Mã dịch vụ</label>
+                            <input 
+                                type="text" 
+                                disabled={true} 
+                                value={service ? formData.service_code : "Hệ thống tự sinh"}
+                                className="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed font-medium text-blue-700" 
+                            />
+                            {!service && (
+                                <p className="mt-1 text-[10px] text-gray-500 italic">* Hệ thống sẽ tự cấp mã DVxxx khi lưu</p>
+                            )}
                         </div>
+                        {/* --------------------------- */}
+                        
                         <div>
                             <label className="block mb-1 text-sm font-semibold text-gray-700">Tên dịch vụ *</label>
                             <input type="text" required value={formData.name}

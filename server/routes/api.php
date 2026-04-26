@@ -5,9 +5,11 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\ServiceController; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// --- Public Routes ---
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);
@@ -16,7 +18,9 @@ Route::post('/password/forgot/send-otp', [PasswordResetController::class, 'sendR
 Route::post('/password/forgot/verify-otp', [PasswordResetController::class, 'verifyResetOtp']);
 Route::post('/password/forgot/reset', [PasswordResetController::class, 'resetPassword']);
 
+// --- Protected Routes (Yêu cầu đăng nhập) ---
 Route::middleware('auth:sanctum')->group(function () {
+    
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/me', function (Request $request) {
@@ -31,13 +35,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
+    // --- Quản lý Quyền & Vai trò ---
     Route::get('/permissions', [PermissionController::class, 'index']);
-    Route::get('/roles/{id}/permissions', [PermissionController::class, 'getRolePermissions']);
-    Route::put('/roles/{id}/permissions', [PermissionController::class, 'updateRolePermissions']);
-    Route::get('/users/{id}/permissions', [PermissionController::class, 'getUserPermissions']);
+    Route::get('/roles/{id}/permissions', [PermissionController::class, 'getPermissionsByRole']);
     Route::put('/users/{id}/permissions', [PermissionController::class, 'updateUserPermissions']);
 
+    // --- Nhóm Route chỉ dành riêng cho ADMIN ---
     Route::middleware('role:admin')->group(function () {
+        
+        // Quản lý người dùng
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{user}', [UserController::class, 'update'])->whereNumber('user');
@@ -49,10 +55,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/roles', [UserController::class, 'getAllRoles']);
         Route::get('/admin/dashboard-stats', [DashboardController::class, 'getAdminStats']);
 
-        // === Quản lý dịch vụ nha khoa (UC 4.1) ===
-        Route::get('/services', [\App\Http\Controllers\Api\ServiceController::class, 'index']);
-        Route::post('/services', [\App\Http\Controllers\Api\ServiceController::class, 'store']);
-        Route::put('/services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'update'])->whereNumber('service');
-        Route::delete('/services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'destroy'])->whereNumber('service');
+        // ==========================================================
+        // UC 4.1: QUẢN LÝ DỊCH VỤ NHA KHOA
+        // Theo đặc tả: Toàn quyền (XEM/THÊM/SỬA/VÔ HIỆU HÓA) 
+        // CHỈ dành riêng cho Quản trị viên (Admin)
+        // ==========================================================
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::put('/services/{service}', [ServiceController::class, 'update'])->whereNumber('service');
+        Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->whereNumber('service');
     });
 });
