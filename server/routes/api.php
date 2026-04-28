@@ -8,8 +8,11 @@ use App\Http\Controllers\Api\ProfessionalProfileController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ServiceController; 
+use App\Http\Controllers\Api\SpecialtyController; 
+use App\Http\Controllers\Api\ServicePackageController; // THÊM IMPORT NÀY
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
 
 // --- Public Routes ---
 Route::post('/login', [AuthController::class, 'login']);
@@ -41,14 +44,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/permissions', [PermissionController::class, 'index']);
     Route::get('/roles/{id}/permissions', [PermissionController::class, 'getPermissionsByRole']);
     Route::put('/users/{id}/permissions', [PermissionController::class, 'updateUserPermissions']);
+    
     Route::get('/my-professional-profile', [MyProfessionalProfileController::class, 'show']);
     Route::put('/my-professional-profile/{professionalProfile}', [MyProfessionalProfileController::class, 'update'])->whereNumber('professionalProfile');
     Route::post('/my-professional-profile/{professionalProfile}/submit', [MyProfessionalProfileController::class, 'submit'])->whereNumber('professionalProfile');
 
+    // ==========================================================
+    // API CHO PHÉP TẤT CẢ NHÂN VIÊN ĐÃ ĐĂNG NHẬP ĐỀU XEM ĐƯỢC
+    // ==========================================================
+    Route::get('/services', [ServiceController::class, 'index']);
+    Route::get('/specialties', [SpecialtyController::class, 'index']);
+    Route::get('/service-packages', [ServicePackageController::class, 'index']); // ĐÃ LÔI RA NGOÀI NHÓM ADMIN
+
     // --- Nhóm Route chỉ dành riêng cho ADMIN ---
     Route::middleware('role:admin')->group(function () {
         
-        // Quản lý người dùng
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{user}', [UserController::class, 'update'])->whereNumber('user');
@@ -57,13 +67,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users/{user}/verify-reset', [UserController::class, 'verifyAndResetPassword'])->whereNumber('user');
         Route::get('/users/history', [UserController::class, 'getHistory']);
 
-        // Staff Routes
         Route::get('/staff', [\App\Http\Controllers\Api\StaffController::class, 'index']);
         Route::post('/staff', [\App\Http\Controllers\Api\StaffController::class, 'store']);
         Route::get('/staff/{staff}', [\App\Http\Controllers\Api\StaffController::class, 'show'])->whereNumber('staff');
         Route::put('/staff/{staff}', [\App\Http\Controllers\Api\StaffController::class, 'update'])->whereNumber('staff');
         Route::put('/staff/{staff}/status', [\App\Http\Controllers\Api\StaffController::class, 'changeStatus'])->whereNumber('staff');
         Route::get('/staff/{staff}/history', [\App\Http\Controllers\Api\StaffController::class, 'history'])->whereNumber('staff');
+        
         Route::get('/professional-profiles/options', [ProfessionalProfileController::class, 'options']);
         Route::get('/professional-profiles', [ProfessionalProfileController::class, 'index']);
         Route::post('/professional-profiles', [ProfessionalProfileController::class, 'store']);
@@ -78,14 +88,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/roles', [UserController::class, 'getAllRoles']);
         Route::get('/admin/dashboard-stats', [DashboardController::class, 'getAdminStats']);
 
-        // ==========================================================
         // UC 4.1: QUẢN LÝ DỊCH VỤ NHA KHOA
-        // Theo đặc tả: Toàn quyền (XEM/THÊM/SỬA/VÔ HIỆU HÓA) 
-        // CHỈ dành riêng cho Quản trị viên (Admin)
-        // ==========================================================
-        Route::get('/services', [ServiceController::class, 'index']);
         Route::post('/services', [ServiceController::class, 'store']);
         Route::put('/services/{service}', [ServiceController::class, 'update'])->whereNumber('service');
         Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->whereNumber('service');
+
+        // UC 4.2: QUẢN LÝ GÓI DỊCH VỤ
+        Route::post('/service-packages', [ServicePackageController::class, 'store']);
+        Route::put('/service-packages/{package}', [ServicePackageController::class, 'update'])->whereNumber('package');
+        Route::delete('/service-packages/{package}', [ServicePackageController::class, 'destroy'])->whereNumber('package');
     });
 });

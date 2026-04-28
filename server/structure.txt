@@ -13,9 +13,14 @@ C:.
 |   phpunit.xml
 |   README.md
 |   structure.txt
+|   test_staff.php
 |   vite.config.js
 |   
 +---app
+|   +---Console
+|   |   \---Commands
+|   |           ExpireProfessionalProfiles.php
+|   |           
 |   +---Http
 |   |   +---Controllers
 |   |   |   |   Controller.php
@@ -23,9 +28,12 @@ C:.
 |   |   |   \---Api
 |   |   |           AuthController.php
 |   |   |           DashboardController.php
+|   |   |           MyProfessionalProfileController.php
 |   |   |           PasswordResetController.php
 |   |   |           PermissionController.php
+|   |   |           ProfessionalProfileController.php
 |   |   |           ServiceController.php
+|   |   |           StaffController.php
 |   |   |           UserController.php
 |   |   |           
 |   |   +---Middleware
@@ -38,18 +46,25 @@ C:.
 |   +---Models
 |   |       AuditLog.php
 |   |       Permission.php
+|   |       ProfessionalProfile.php
+|   |       ProfessionalProfileCertificate.php
+|   |       ProfessionalProfileSpecialty.php
 |   |       Role.php
 |   |       Service.php
 |   |       ServiceAttachment.php
 |   |       Specialty.php
+|   |       Staff.php
 |   |       User.php
 |   |       
 |   +---Providers
 |   |       AppServiceProvider.php
 |   |       
 |   \---Services
+|           AuditLogService.php
 |           AuthService.php
 |           OtpService.php
+|           ProfessionalProfileService.php
+|           ProfessionalProfileUsageChecker.php
 |           UserService.php
 |           
 +---bootstrap
@@ -91,15 +106,19 @@ C:.
 |   |       2026_04_21_100108_create_audit_logs_table.php
 |   |       2026_04_21_110610_create_roles_table.php
 |   |       2026_04_25_173032_create_permissions_table.php
+|   |       2026_04_26_082529_create_staff_table.php
 |   |       2026_04_26_152359_create_specialties_table.php
 |   |       2026_04_26_152400_create_service_specialty_table.php
 |   |       2026_04_26_152520_create_service_attachments_table.php
+|   |       2026_04_27_100000_create_professional_profiles_tables.php
 |   |       
 |   \---seeders
 |           DatabaseSeeder.php
 |           PermissionSeeder.php
+|           ProfessionalProfileSeeder.php
 |           RoleSeeder.php
 |           ServiceSeeder.php
+|           StaffSeeder.php
 |           UserSeeder.php
 |           
 +---public
@@ -162,6 +181,7 @@ C:.
 |   |   
 |   +---Feature
 |   |       ExampleTest.php
+|   |       ProfessionalProfileTest.php
 |   |       
 |   \---Unit
 |           ExampleTest.php

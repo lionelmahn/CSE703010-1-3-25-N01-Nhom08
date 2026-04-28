@@ -31,6 +31,9 @@ import HealthRecords from '@/page/HealthRecords';
 // --- ĐÃ THÊM IMPORT CÒN THIẾU ---
 import MyProfessionalProfile from '@/page/MyProfessionalProfile'; 
 import ServiceManagement from '@/page/ServiceManagement';
+// ĐÃ SỬA LỖI CHÍNH TẢ Ở TÊN FILE: ServicePackageManagemennt -> ServicePackageManagement
+import ServicePackageManagement from '@/page/ServicePackageManagement';
+
 
 // Component bảo vệ route — chuyển hướng về login nếu chưa đăng nhập
 const ProtectedRoute = ({ children }) => {
@@ -115,6 +118,16 @@ const AppRouter = () => {
           element={
             <PermissionRoute roles={['admin', 'bac_si', 'ke_toan']} permission="services.view">
               <ServiceManagement />
+            </PermissionRoute>
+          } 
+        />
+
+        {/* --- UC 4.2: QUẢN LÝ GÓI DỊCH VỤ --- */}
+        <Route 
+          path="service-packages" 
+          element={
+            <PermissionRoute roles={['admin', 'bac_si', 'ke_toan','le_tan']}>
+              <ServicePackageManagement />
             </PermissionRoute>
           } 
         />
