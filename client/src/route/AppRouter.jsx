@@ -34,6 +34,7 @@ import ServiceManagement from '@/page/ServiceManagement';
 // ĐÃ SỬA LỖI CHÍNH TẢ Ở TÊN FILE: ServicePackageManagemennt -> ServicePackageManagement
 import ServicePackageManagement from '@/page/ServicePackageManagement';
 import PriceListManagement from '@/page/PriceListManagement';
+import ToothStatusManagement from '@/page/ToothStatusManagement';
 
 
 // Component bảo vệ route — chuyển hướng về login nếu chưa đăng nhập
@@ -139,6 +140,15 @@ const AppRouter = () => {
           element={
             <PermissionRoute roles={['admin', 'ke_toan', 'le_tan']}>
               <PriceListManagement />
+            </PermissionRoute>
+          } 
+        />
+          {/* --- UC 4.4: QUẢN LÝ TRẠNG THÁI RĂNG --- */}
+        <Route 
+          path="tooth-statuses" 
+          element={
+            <PermissionRoute roles={['admin', 'bac_si']} permission="tooth_statuses.manage">
+              <ToothStatusManagement />
             </PermissionRoute>
           } 
         />

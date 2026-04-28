@@ -10,8 +10,9 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ServiceController; 
 use App\Http\Controllers\Api\SpecialtyController; 
 use App\Http\Controllers\Api\ServicePackageController;
-// --- ĐÂY LÀ IMPORT BẠN BỊ THIẾU ---
 use App\Http\Controllers\Api\PriceListController; 
+// --- BỔ SUNG IMPORT CHO UC 4.4 ---
+use App\Http\Controllers\Api\ToothStatusController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -58,13 +59,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/specialties', [SpecialtyController::class, 'index']);
     Route::get('/service-packages', [ServicePackageController::class, 'index']); 
     
-    // --- LẤY DỮ LIỆU BẢNG GIÁ ĐỂ ĐỔ LÊN GIAO DIỆN MÀ BẠN CHỤP ẢNH ---
     Route::get('/price-list', [PriceListController::class, 'index']); 
     Route::get('/price-list/{serviceId}/history', [PriceListController::class, 'history'])->whereNumber('serviceId');
+
+    // --- UC 4.4: XEM DANH MỤC TRẠNG THÁI RĂNG (Bác sĩ dùng để khám) ---
+    Route::get('/tooth-statuses', [ToothStatusController::class, 'index']);
 
     // --- API ĐỀ XUẤT GIÁ MỚI (Cả Kế toán và Admin đều được gọi) ---
     Route::middleware('role:admin,ke_toan')->group(function () {
         Route::post('/price-list', [PriceListController::class, 'store']);
+    });
+
+    // --- UC 4.4: API ĐỀ XUẤT TRẠNG THÁI RĂNG MỚI (Bác sĩ và Admin) ---
+    Route::middleware('role:admin,bac_si')->group(function () {
+        Route::post('/tooth-statuses', [ToothStatusController::class, 'store']);
     });
 
     // --- Nhóm Route chỉ dành riêng cho ADMIN ---
@@ -109,7 +117,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/service-packages/{package}', [ServicePackageController::class, 'update'])->whereNumber('package');
         Route::delete('/service-packages/{package}', [ServicePackageController::class, 'destroy'])->whereNumber('package');
 
-        // --- UC 4.3: QUYỀN PHÊ DUYỆT BẢNG GIÁ (Chỉ dành cho Admin) ---
+        // UC 4.3: QUYỀN PHÊ DUYỆT BẢNG GIÁ
         Route::put('/price-list/{id}/approve', [PriceListController::class, 'approve']);
+
+        // --- UC 4.4: QUẢN TRỊ TRẠNG THÁI RĂNG (Admin duyệt & xóa) ---
+        Route::put('/tooth-statuses/{id}/approve', [ToothStatusController::class, 'approve']);
+        Route::delete('/tooth-statuses/{id}', [ToothStatusController::class, 'destroy'])->whereNumber('id');
     });
 });
