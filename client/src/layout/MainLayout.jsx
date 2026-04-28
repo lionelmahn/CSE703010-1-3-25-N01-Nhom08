@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
-  LayoutDashboard,
-  Users,
+  Bell,
+  BriefcaseMedical,
   Calendar,
   ClipboardList,
-  Settings,
-  Search,
-  Bell,
-  Menu,
-  X,
-  LogOut,
   FileText,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  ShieldCheck,
   TrendingUp,
-  ShieldCheck
+  Users,
+  X,
 } from 'lucide-react';
 
 const MainLayout = () => {
@@ -27,20 +28,20 @@ const MainLayout = () => {
     bac_si: 'Bác sĩ chuyên khoa',
     le_tan: 'Bộ phận Lễ tân',
     ke_toan: 'Kế toán',
-    benh_nhan: 'Bệnh nhân'
+    benh_nhan: 'Bệnh nhân',
   };
 
-  // Cấu hình danh sách Menu
+  // Cấu hình danh sách Menu — mỗi item có route path và mã quyền (permission)
   const allMenuItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Tổng quan', path: '/dashboard', roles: ['admin', 'bac_si', 'le_tan', 'ke_toan', 'benh_nhan'] },
 
-    { icon: <ShieldCheck size={20} />, label: 'Quản lý tài khoản', path: '/users', roles: ['admin'] },
-    { icon: <Users size={20} />, label: 'Quản lý nhân sự', path: '/staff', roles: ['admin'] },
-    
-    // Chỗ này Minh đã thêm roles: ['admin', 'bac_si','ke_toan'] rất chuẩn
-    { icon: <ClipboardList size={20} />, label: 'Quản lý dịch vụ', path: '/services', roles: ['admin'], permission: 'services.view' },
-    
+    { icon: <ShieldCheck size={20} />, label: 'Quản lý tài khoản', path: '/users', roles: ['admin'], permission: 'users.view' },
+    { icon: <ShieldCheck size={20} />, label: 'Phân quyền', path: '/permissions', roles: ['admin'], permission: 'users.view' },
+    { icon: <Users size={20} />, label: 'Quản lý nhân sự', path: '/staff', roles: ['admin'], permission: 'staff.view' },
     { icon: <Settings size={20} />, label: 'Cài đặt hệ thống', path: '/settings', roles: ['admin'] },
+
+    // --- ĐÃ KHÔI PHỤC: MENU QUẢN LÝ DỊCH VỤ ---
+    { icon: <BriefcaseMedical size={20} />, label: 'Quản lý dịch vụ', path: '/services', roles: ['admin', 'bac_si', 'ke_toan'], permission: 'services.view' },
 
     { icon: <Users size={20} />, label: 'Danh sách bệnh nhân', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },
     { icon: <Calendar size={20} />, label: 'Lịch hẹn phòng khám', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },
@@ -53,13 +54,16 @@ const MainLayout = () => {
     { icon: <ClipboardList size={20} />, label: 'Hồ sơ sức khỏe', path: '/health-records', roles: ['benh_nhan'] },
   ];
 
-  // SỬA LOGIC TẠI ĐÂY: Ưu tiên hiển thị theo mảng Roles để menu hiện ra ngay
   const authorizedMenus = allMenuItems.filter(item => {
-    // 1. Admin luôn thấy tất cả
+    // Admin có quyền truy cập tất cả
     if (userRole === 'admin') return true;
     
-    // 2. Kiểm tra xem Role hiện tại có nằm trong mảng roles cho phép của menu không
-    // Điều này giúp "Quản lý dịch vụ" hiện lên cho cả bac_si và ke_toan
+    // Nếu menu yêu cầu quyền cụ thể (Dynamic RBAC)
+    if (item.permission) {
+      return hasPermission(item.permission);
+    }
+    
+    // Đối với các menu không có quyền cụ thể (ví dụ: Dashboard mặc định của bệnh nhân), dựa vào role
     return item.roles.includes(userRole);
   });
 
@@ -70,7 +74,8 @@ const MainLayout = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans">
-      {/* Sidebar - Giữ nguyên màu tối bg-slate-900 */}
+
+      {/* Sidebar */}
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 text-white transition-all duration-300 flex flex-col`}>
         <div className="p-6 flex items-center gap-3 border-b border-slate-800">
           <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center shrink-0">
@@ -109,9 +114,9 @@ const MainLayout = () => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header - Giữ nguyên màu trắng bg-white */}
+
+        {/* Header */}
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 shadow-sm">
           <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-slate-500 hover:text-teal-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
