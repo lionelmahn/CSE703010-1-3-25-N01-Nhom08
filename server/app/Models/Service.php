@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon; // BẮT BUỘC PHẢI CÓ DÒNG NÀY
 
 class Service extends Model
 {
-    // Mở khóa toàn bộ các cột theo đúng file create_services_table
     protected $fillable = [
         'service_code', 
         'name', 
@@ -16,18 +16,34 @@ class Service extends Model
         'duration_minutes',
         'status',        
         'visibility',
-        'commission_rate'
+        'commission_rate',
     ];
 
-    // Mối quan hệ 1-N: Có nhiều tệp đính kèm
     public function attachments()
     {
         return $this->hasMany(ServiceAttachment::class);
     }
 
-    // Mối quan hệ N-N: Dịch vụ thuộc về nhiều Chuyên môn
     public function specialties()
     {
         return $this->belongsToMany(Specialty::class, 'service_specialty');
+    }
+
+    public function prices()
+    {
+        return $this->hasMany(ServicePrice::class)->orderBy('effective_from', 'desc');
+    }
+
+    public function currentPrice()
+    {
+        $now = Carbon::now('Asia/Ho_Chi_Minh');
+
+        return $this->hasOne(ServicePrice::class)
+                    ->where('status', 'approved')
+                    ->where('effective_from', '<=', $now)
+                    ->where(function($query) use ($now) {
+                        $query->whereNull('effective_to')->orWhere('effective_to', '>', $now);
+                    })
+                    ->orderBy('effective_from', 'desc');
     }
 }

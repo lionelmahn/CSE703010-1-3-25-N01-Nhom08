@@ -42,6 +42,8 @@ const MainLayout = () => {
     // Nhóm Nghiệp vụ - ĐÃ BỎ permission Ở DỊCH VỤ ĐỂ HIỆN LÊN CHO BÁC SĨ/KẾ TOÁN
     { icon: <BriefcaseMedical size={20} />, label: 'Quản lý dịch vụ', path: '/services', roles: ['admin', 'bac_si', 'ke_toan'] },
     { icon: <ClipboardList size={20} />, label: 'Quản lý gói dịch vụ', path: '/service-packages', roles: ['admin', 'ke_toan', 'bac_si', 'le_tan'] },
+     
+    { icon: <FileText size={20} />, label: 'Bảng giá dịch vụ', path: '/price-list', roles: ['admin', 'ke_toan', 'le_tan'] },
     
     { icon: <Calendar size={20} />, label: 'Lịch hẹn', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },
     { icon: <Users size={20} />, label: 'Danh sách bệnh nhân', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },

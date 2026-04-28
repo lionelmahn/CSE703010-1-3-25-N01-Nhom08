@@ -9,7 +9,9 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ServiceController; 
 use App\Http\Controllers\Api\SpecialtyController; 
-use App\Http\Controllers\Api\ServicePackageController; // THÊM IMPORT NÀY
+use App\Http\Controllers\Api\ServicePackageController;
+// --- ĐÂY LÀ IMPORT BẠN BỊ THIẾU ---
+use App\Http\Controllers\Api\PriceListController; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -54,7 +56,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==========================================================
     Route::get('/services', [ServiceController::class, 'index']);
     Route::get('/specialties', [SpecialtyController::class, 'index']);
-    Route::get('/service-packages', [ServicePackageController::class, 'index']); // ĐÃ LÔI RA NGOÀI NHÓM ADMIN
+    Route::get('/service-packages', [ServicePackageController::class, 'index']); 
+    
+    // --- LẤY DỮ LIỆU BẢNG GIÁ ĐỂ ĐỔ LÊN GIAO DIỆN MÀ BẠN CHỤP ẢNH ---
+    Route::get('/price-list', [PriceListController::class, 'index']); 
+    Route::get('/price-list/{serviceId}/history', [PriceListController::class, 'history'])->whereNumber('serviceId');
+
+    // --- API ĐỀ XUẤT GIÁ MỚI (Cả Kế toán và Admin đều được gọi) ---
+    Route::middleware('role:admin,ke_toan')->group(function () {
+        Route::post('/price-list', [PriceListController::class, 'store']);
+    });
 
     // --- Nhóm Route chỉ dành riêng cho ADMIN ---
     Route::middleware('role:admin')->group(function () {
@@ -97,5 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/service-packages', [ServicePackageController::class, 'store']);
         Route::put('/service-packages/{package}', [ServicePackageController::class, 'update'])->whereNumber('package');
         Route::delete('/service-packages/{package}', [ServicePackageController::class, 'destroy'])->whereNumber('package');
+
+        // --- UC 4.3: QUYỀN PHÊ DUYỆT BẢNG GIÁ (Chỉ dành cho Admin) ---
+        Route::put('/price-list/{id}/approve', [PriceListController::class, 'approve']);
     });
 });

@@ -33,6 +33,7 @@ import MyProfessionalProfile from '@/page/MyProfessionalProfile';
 import ServiceManagement from '@/page/ServiceManagement';
 // ĐÃ SỬA LỖI CHÍNH TẢ Ở TÊN FILE: ServicePackageManagemennt -> ServicePackageManagement
 import ServicePackageManagement from '@/page/ServicePackageManagement';
+import PriceListManagement from '@/page/PriceListManagement';
 
 
 // Component bảo vệ route — chuyển hướng về login nếu chưa đăng nhập
@@ -128,6 +129,16 @@ const AppRouter = () => {
           element={
             <PermissionRoute roles={['admin', 'bac_si', 'ke_toan','le_tan']}>
               <ServicePackageManagement />
+            </PermissionRoute>
+          } 
+        />
+
+        {/* --- UC 4.3: QUẢN LÝ BẢNG GIÁ DỊCH VỤ --- */}
+        <Route 
+          path="price-list" 
+          element={
+            <PermissionRoute roles={['admin', 'ke_toan', 'le_tan']}>
+              <PriceListManagement />
             </PermissionRoute>
           } 
         />
