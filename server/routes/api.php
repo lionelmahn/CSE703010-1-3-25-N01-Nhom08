@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProfessionalProfileController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
+use App\Http\Controllers\Api\ServicePackageController;
 use App\Http\Controllers\Api\ShiftSwapRequestController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PermissionController;
@@ -17,16 +18,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/public/services', [ServiceCatalogController::class, 'publicIndex']);
+Route::get('/public/service-groups', [ServiceCatalogController::class, 'groups']);
+Route::get('/public/service-packages', [ServicePackageController::class, 'publicIndex']);
 Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
 Route::post('/password/forgot/send-otp', [PasswordResetController::class, 'sendResetOtp']);
 Route::post('/password/forgot/verify-otp', [PasswordResetController::class, 'verifyResetOtp']);
 Route::post('/password/forgot/reset', [PasswordResetController::class, 'resetPassword']);
-
-// Public API - Danh muc dich vu cong khai (khong can dang nhap)
-Route::get('/public/services', [ServiceCatalogController::class, 'publicIndex']);
-Route::get('/public/service-groups', [ServiceCatalogController::class, 'groups']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -60,16 +60,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/leave-requests', [LeaveRequestController::class, 'store']);
     Route::post('/shift-swap-requests', [ShiftSwapRequestController::class, 'store']);
 
-    // Service Catalog - cho moi user da dang nhap (RBAC xu ly trong controller)
-    Route::get('/services', [ServiceCatalogController::class, 'index']);
-    Route::get('/services/{id}', [ServiceCatalogController::class, 'show'])->whereNumber('id');
-    Route::get('/service-groups', [ServiceCatalogController::class, 'groups']);
-    Route::get('/specialties', [ServiceCatalogController::class, 'specialties']);
-
-    // Attachment - doc danh sach & download
-    Route::get('/services/{serviceId}/attachments', [ServiceAttachmentController::class, 'index'])->whereNumber('serviceId');
-    Route::get('/services/{serviceId}/attachments/{attachmentId}/download', [ServiceAttachmentController::class, 'download'])->whereNumber(['serviceId', 'attachmentId']);
-
     Route::middleware('role:admin')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
@@ -102,7 +92,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/roles', [UserController::class, 'getAllRoles']);
         Route::get('/admin/dashboard-stats', [DashboardController::class, 'getAdminStats']);
 
-        // Work Schedule Management
+        // Service Catalog (UC4.1)
+        Route::post('/services', [ServiceCatalogController::class, 'store']);
+        Route::put('/services/{service}', [ServiceCatalogController::class, 'update'])->whereNumber('service');
+        Route::post('/services/{service}/status', [ServiceCatalogController::class, 'changeStatus'])->whereNumber('service');
+        Route::delete('/services/{service}', [ServiceCatalogController::class, 'destroy'])->whereNumber('service');
+        Route::post('/services/{service}/attachments', [ServiceAttachmentController::class, 'store'])->whereNumber('service');
+        Route::delete('/services/{service}/attachments/{attachment}', [ServiceAttachmentController::class, 'destroy'])->whereNumber('service')->whereNumber('attachment');
+        Route::get('/services/audit-logs', [ServiceCatalogController::class, 'auditLogs']);
+
+        // Work Schedule Management (UC3.3)
         Route::get('/work-schedules', [WorkScheduleController::class, 'index']);
         Route::post('/work-schedules', [WorkScheduleController::class, 'store']);
         Route::post('/work-schedules/copy', [WorkScheduleController::class, 'copy']);
@@ -120,15 +119,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/shift-swap-requests/{swap}/approve', [ShiftSwapRequestController::class, 'approve'])->whereNumber('swap');
         Route::post('/shift-swap-requests/{swap}/reject', [ShiftSwapRequestController::class, 'reject'])->whereNumber('swap');
 
-        // Service Catalog Management (admin only)
-        Route::post('/services', [ServiceCatalogController::class, 'store']);
-        Route::put('/services/{id}', [ServiceCatalogController::class, 'update'])->whereNumber('id');
-        Route::put('/services/{id}/status', [ServiceCatalogController::class, 'changeStatus'])->whereNumber('id');
-        Route::delete('/services/{id}', [ServiceCatalogController::class, 'destroy'])->whereNumber('id');
-        Route::get('/services/audit-logs', [ServiceCatalogController::class, 'auditLogs']);
-
-        // Service Attachments Management (admin only)
-        Route::post('/services/{serviceId}/attachments', [ServiceAttachmentController::class, 'store'])->whereNumber('serviceId');
-        Route::delete('/services/{serviceId}/attachments/{attachmentId}', [ServiceAttachmentController::class, 'destroy'])->whereNumber(['serviceId', 'attachmentId']);
+        // Service Package (UC4.2)
+        Route::post('/service-packages', [ServicePackageController::class, 'store']);
+        Route::put('/service-packages/{package}', [ServicePackageController::class, 'update'])->whereNumber('package');
+        Route::post('/service-packages/{package}/status', [ServicePackageController::class, 'changeStatus'])->whereNumber('package');
+        Route::post('/service-packages/{package}/clone', [ServicePackageController::class, 'clone'])->whereNumber('package');
+        Route::post('/service-packages/{package}/new-version', [ServicePackageController::class, 'newVersion'])->whereNumber('package');
+        Route::delete('/service-packages/{package}', [ServicePackageController::class, 'destroy'])->whereNumber('package');
+        Route::get('/service-packages/audit-logs', [ServicePackageController::class, 'auditLogs']);
     });
+
+    // Service Package - read-only for any authenticated user; controller scopes for benh_nhan
+    Route::get('/service-packages', [ServicePackageController::class, 'index']);
+    Route::get('/service-packages/{package}', [ServicePackageController::class, 'show'])->whereNumber('package');
+    Route::get('/service-packages/{package}/discontinued-warnings', [ServicePackageController::class, 'discontinuedWarnings'])->whereNumber('package');
+
+    // Service catalog (read for any authenticated user, scope filter applied in service)
+    Route::get('/services', [ServiceCatalogController::class, 'index']);
+    Route::get('/services/groups', [ServiceCatalogController::class, 'groups']);
+    Route::get('/services/specialties', [ServiceCatalogController::class, 'specialties']);
+    Route::get('/services/{service}', [ServiceCatalogController::class, 'show'])->whereNumber('service');
+    Route::get('/services/{service}/attachments', [ServiceAttachmentController::class, 'index'])->whereNumber('service');
+    Route::get('/services/{service}/attachments/{attachment}/download', [ServiceAttachmentController::class, 'download'])
+        ->whereNumber('service')->whereNumber('attachment');
 });

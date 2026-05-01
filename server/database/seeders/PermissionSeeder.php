@@ -16,12 +16,13 @@ class PermissionSeeder extends Seeder
             'professional_profiles' => 'Ho so chuyen mon',
             'categories' => 'Danh muc',
             'patients' => 'Benh nhan',
+            'services' => 'Dich vu nha khoa',
+            'packages' => 'Goi dich vu',
             'appointments' => 'Lich hen',
             'dental_records' => 'Kham nha khoa',
             'finance' => 'Tai chinh',
             'reports' => 'Bao cao',
             'schedules' => 'Lich lam viec',
-            'services' => 'Dich vu nha khoa',
         ];
 
         $actions = [
@@ -48,17 +49,21 @@ class PermissionSeeder extends Seeder
             }
         }
 
-        // Admin nhan toan bo quyen
         $adminRole = Role::where('slug', 'admin')->first();
         if ($adminRole) {
             $adminRole->permissions()->sync($permissionIds);
         }
 
-        // Non-admin roles nhan quyen mac dinh services.view
-        $defaultServicePermissions = Permission::where('slug', 'services.view')->pluck('id')->toArray();
-        $nonAdminRoles = Role::where('slug', '!=', 'admin')->get();
-        foreach ($nonAdminRoles as $role) {
-            $role->permissions()->syncWithoutDetaching($defaultServicePermissions);
+        // Grant services.view + packages.view to all non-admin roles so they
+        // can browse the catalog (visibility/status scope enforced server-side).
+        $sharedView = Permission::whereIn('slug', ['services.view', 'packages.view'])->pluck('id')->all();
+        if (! empty($sharedView)) {
+            foreach (['bac_si', 'le_tan', 'ke_toan', 'benh_nhan'] as $slug) {
+                $role = Role::where('slug', $slug)->first();
+                if ($role) {
+                    $role->permissions()->syncWithoutDetaching($sharedView);
+                }
+            }
         }
     }
 }
