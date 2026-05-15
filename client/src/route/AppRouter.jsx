@@ -6,6 +6,8 @@ import MainLayout from '@/layout/MainLayout';
 
 import Login from '@/page/Login';
 import ForgotPassword from '@/page/ForgotPassword';
+import LandingPage from '@/page/LandingPage';
+import BookingPage from '@/page/BookingPage';
 
 import AdminDashboard from '@/page/AdminDashboard';
 import DoctorDashboard from '@/page/DoctorDashboard';
@@ -20,7 +22,6 @@ import ProfessionalProfileManagement from '@/page/ProfessionalProfileManagement'
 import ServiceCatalogManagement from '@/page/ServiceCatalogManagement';
 import ServicePackageManagement from '@/page/ServicePackageManagement';
 import ServicePriceManagement from '@/page/ServicePriceManagement';
-import ToothStatusManagement from '@/page/ToothStatusManagement';
 import SystemSettings from '@/page/SystemSettings';
 import PatientList from '@/page/PatientList';
 import Appointments from '@/page/Appointments';
@@ -72,11 +73,13 @@ const AppRouter = () => {
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/booking" element={<BookingPage />} />
+
       <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="dashboard" element={<DashboardByRole />} />
 
         <Route path="users" element={<PermissionRoute permission="users.view"><UserManagement /></PermissionRoute>} />
@@ -86,7 +89,6 @@ const AppRouter = () => {
         <Route path="services" element={<PermissionRoute permission="services.view"><ServiceCatalogManagement /></PermissionRoute>} />
         <Route path="service-packages" element={<PermissionRoute permission="packages.view"><ServicePackageManagement /></PermissionRoute>} />
         <Route path="service-prices" element={<PermissionRoute permission="prices.view"><ServicePriceManagement /></PermissionRoute>} />
-        <Route path="tooth-statuses" element={<PermissionRoute permission="tooth_statuses.view"><ToothStatusManagement /></PermissionRoute>} />
         <Route path="settings" element={<PermissionRoute><SystemSettings /></PermissionRoute>} />
 
         <Route path="patients" element={<PermissionRoute permission="patients.view"><PatientList /></PermissionRoute>} />
@@ -103,7 +105,7 @@ const AppRouter = () => {
         <Route path="health-records" element={<HealthRecords />} />
       </Route>
 
-      <Route path="*" element={<Navigate to={isLoggedIn ? '/dashboard' : '/login'} replace />} />
+      <Route path="*" element={<Navigate to={isLoggedIn ? '/dashboard' : '/'} replace />} />
     </Routes>
   );
 };

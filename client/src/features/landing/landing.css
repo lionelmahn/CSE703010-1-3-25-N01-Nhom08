@@ -1,0 +1,49 @@
+/* Landing Page custom styles không thể biểu diễn gọn bằng Tailwind utilities */
+
+.landing-hero-blob {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    closest-side,
+    rgba(59, 130, 246, 0.18) 0%,
+    rgba(59, 130, 246, 0.08) 45%,
+    rgba(59, 130, 246, 0) 75%
+  );
+  filter: blur(60px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-hero-blob--alt {
+  top: auto;
+  bottom: -15%;
+  right: auto;
+  left: -10%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(
+    closest-side,
+    rgba(99, 102, 241, 0.12) 0%,
+    rgba(99, 102, 241, 0) 70%
+  );
+}
+
+.landing-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.landing-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.landing-select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.1rem;
+  padding-right: 2.75rem;
+}
