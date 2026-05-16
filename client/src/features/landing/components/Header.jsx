@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react';
 
 import { BTN_GHOST, BTN_PRIMARY } from '../styles';
 import { NAV_LINKS } from '../data';
+import { scrollToBooking } from '../utils';
 
 const Header = () => {
   const [open, setOpen] = useState(false);
@@ -19,7 +20,11 @@ const Header = () => {
 
   const goBooking = () => {
     setOpen(false);
-    navigate('/booking');
+    // Nếu đang ở landing và section đặt lịch tồn tại → cuộn xuống.
+    // Ngược lại (route khác, ví dụ /login) thì fallback navigate.
+    if (!scrollToBooking()) {
+      navigate('/#dat-lich');
+    }
   };
 
   const goLogin = () => {

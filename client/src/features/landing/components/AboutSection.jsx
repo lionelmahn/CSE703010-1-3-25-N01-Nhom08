@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 
 import { BTN_PRIMARY, CONTAINER, SECTION_ALT } from '../styles';
 import { ABOUT_HIGHLIGHTS } from '../data';
+import { handleImgError } from '../utils';
 
 const AboutSection = () => (
   <section id="ve-chung-toi" className={`${SECTION_ALT} overflow-hidden`}>
@@ -16,6 +17,7 @@ const AboutSection = () => (
               className="w-full h-auto object-cover aspect-[4/3]"
               loading="lazy"
               decoding="async"
+              onError={handleImgError}
             />
           </div>
           <div className="absolute -right-4 -bottom-6 md:-right-6 bg-blue-600 text-white p-5 md:p-6 rounded-2xl shadow-xl shadow-blue-500/20 z-20">

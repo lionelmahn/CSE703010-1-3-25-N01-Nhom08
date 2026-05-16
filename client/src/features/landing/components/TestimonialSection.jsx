@@ -9,6 +9,7 @@ import {
   TITLE,
 } from '../styles';
 import { TESTIMONIALS } from '../data';
+import { handleImgError } from '../utils';
 
 const TestimonialSection = () => (
   <section className={SECTION_LIGHT}>
@@ -58,6 +59,7 @@ const TestimonialSection = () => (
                 className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
                 loading="lazy"
                 decoding="async"
+                onError={handleImgError}
               />
               <div>
                 <div className="font-semibold text-slate-900 text-sm">

@@ -112,7 +112,7 @@ export const DOCTORS = [
     name: 'BS. Nguyễn Minh Anh',
     role: 'Chuyên gia Chỉnh nha',
     image:
-      'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=600&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1638202993928-7267aad84c31?q=80&w=600&auto=format&fit=crop',
   },
   {
     id: 'nam',
@@ -246,7 +246,7 @@ export const FAQS = [
 
 export const CLINIC_CONTACT = {
   address: '123 Đường Nguyễn Trãi, Thanh Xuân, Hà Nội',
-  hotline: '0398224130',
+  hotline: '1900 1234',
   socials: [
     { name: 'Facebook', label: 'f', href: '#', accent: 'hover:bg-blue-600 hover:border-blue-600' },
     { name: 'Youtube', label: '▶', href: '#', accent: 'hover:bg-red-600 hover:border-red-600' },

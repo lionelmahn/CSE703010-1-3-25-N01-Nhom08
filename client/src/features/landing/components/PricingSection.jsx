@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Check, X as XIcon } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +13,9 @@ import {
   TITLE,
 } from '../styles';
 import { PRICING_PLANS } from '../data';
+import { scrollToBooking } from '../utils';
 
 const PricingSection = () => {
-  const navigate = useNavigate();
-
   return (
     <section id="bang-gia" className={SECTION_ALT}>
       <div className={CONTAINER}>
@@ -125,7 +123,7 @@ const PricingSection = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/booking')}
+                  onClick={() => scrollToBooking()}
                   className={ctaClass}
                 >
                   {plan.cta}

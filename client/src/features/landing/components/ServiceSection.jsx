@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import {
   BTN_INVERTED,
@@ -13,10 +12,10 @@ import {
   TITLE,
 } from '../styles';
 import { FEATURED_SERVICE, SERVICES, SERVICE_CATEGORIES } from '../data';
+import { scrollToBooking } from '../utils';
 
 const ServiceSection = () => {
   const [activeCategory, setActiveCategory] = useState('all');
-  const navigate = useNavigate();
 
   const filteredServices = useMemo(() => {
     if (activeCategory === 'all') return SERVICES;
@@ -72,7 +71,7 @@ const ServiceSection = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/booking')}
+              onClick={() => scrollToBooking()}
               className={`${BTN_INVERTED} self-start`}
             >
               {FEATURED_SERVICE.cta}

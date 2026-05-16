@@ -1,33 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { MapPin, Phone } from 'lucide-react';
 
-import { BTN_PRIMARY, CONTAINER } from '../styles';
-import { BOOKING_SERVICE_OPTIONS, CLINIC_CONTACT } from '../data';
+import { CONTAINER } from '../styles';
+import { CLINIC_CONTACT } from '../data';
+import BookingWizard from '@/features/online-booking/components/BookingWizard';
 
-const inputClass =
-  'w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm placeholder:text-slate-400';
-
+/**
+ * Section "Đặt lịch hẹn" cuối Landing Page.
+ *
+ * Trước đây section này chỉ là form lead 3 trường (tên / SĐT / dịch vụ) rồi
+ * điều hướng sang `/booking`. Nay nhúng trực tiếp `BookingWizard` (UC6.1) để
+ * người dùng hoàn tất gửi yêu cầu ngay trên Landing Page mà không phải
+ * chuyển trang.
+ */
 const BookingCTASection = () => {
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', phone: '', service: '' });
-
-  const handleChange = (field) => (e) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-
-  const submit = (e) => {
-    e.preventDefault();
-    // UC6.1 backend chưa tồn tại — dẫn user sang trang /booking kèm thông tin tạm.
-    const params = new URLSearchParams();
-    if (form.name) params.set('name', form.name);
-    if (form.phone) params.set('phone', form.phone);
-    if (form.service) params.set('service', form.service);
-    const query = params.toString();
-    navigate(query ? `/booking?${query}` : '/booking');
-  };
-
   return (
-    <section className="relative py-20 md:py-24 bg-slate-900 text-slate-300 overflow-hidden">
+    <section
+      id="dat-lich"
+      className="relative py-20 md:py-24 bg-slate-900 text-slate-300 overflow-hidden"
+    >
       <div
         className="absolute inset-0 bg-gradient-to-br from-blue-900/30 via-slate-900 to-slate-900 pointer-events-none"
         aria-hidden="true"
@@ -38,8 +29,8 @@ const BookingCTASection = () => {
       />
 
       <div className={`${CONTAINER} relative z-10`}>
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div>
+        <div className="grid lg:grid-cols-5 gap-10 lg:gap-12 items-start">
+          <div className="lg:col-span-2 lg:sticky lg:top-24">
             <p className="text-xs md:text-sm font-semibold uppercase tracking-wider text-blue-400 mb-3">
               Liên hệ đặt lịch
             </p>
@@ -97,81 +88,15 @@ const BookingCTASection = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-2xl relative text-slate-800 ring-1 ring-slate-100">
+          <div className="lg:col-span-3 bg-white rounded-3xl p-6 md:p-8 shadow-2xl text-slate-800 ring-1 ring-slate-100">
             <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">
-              Đăng Ký Khám
+              Đăng Ký Khám Online
             </h3>
             <p className="text-sm text-slate-500 mb-6">
-              Nhận tư vấn miễn phí trong 15 phút.
+              Hoàn tất 3 bước để gửi yêu cầu — tư vấn viên sẽ liên hệ xác nhận
+              trong vòng 15 phút.
             </p>
-            <form className="space-y-4" onSubmit={submit}>
-              <div>
-                <label
-                  htmlFor="booking-name"
-                  className="block text-sm font-medium text-slate-700 mb-1.5"
-                >
-                  Họ và tên <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="booking-name"
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={handleChange('name')}
-                  placeholder="Nhập họ tên của bạn"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="booking-phone"
-                  className="block text-sm font-medium text-slate-700 mb-1.5"
-                >
-                  Số điện thoại <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="booking-phone"
-                  type="tel"
-                  required
-                  pattern="[0-9+\s().-]{8,15}"
-                  value={form.phone}
-                  onChange={handleChange('phone')}
-                  placeholder="Nhập số điện thoại"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="booking-service"
-                  className="block text-sm font-medium text-slate-700 mb-1.5"
-                >
-                  Dịch vụ quan tâm
-                </label>
-                <select
-                  id="booking-service"
-                  value={form.service}
-                  onChange={handleChange('service')}
-                  className={`${inputClass} landing-select-chevron appearance-none`}
-                >
-                  <option value="">Chọn dịch vụ</option>
-                  {BOOKING_SERVICE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="submit"
-                className={`${BTN_PRIMARY} w-full justify-center mt-2`}
-              >
-                Gửi thông tin đăng ký
-              </button>
-              <p className="text-[11px] text-slate-400 text-center mt-3 leading-relaxed">
-                Thông tin của bạn được bảo mật tuyệt đối theo chính sách của
-                chúng tôi.
-              </p>
-            </form>
+            <BookingWizard variant="embedded" showHeader={false} />
           </div>
         </div>
       </div>

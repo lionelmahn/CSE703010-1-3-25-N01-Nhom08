@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import {
   BTN_OUTLINE,
@@ -11,10 +10,9 @@ import {
   TITLE,
 } from '../styles';
 import { DOCTORS } from '../data';
+import { handleImgError, scrollToBooking } from '../utils';
 
 const DoctorSection = () => {
-  const navigate = useNavigate();
-
   return (
     <section id="bac-si" className={SECTION_LIGHT}>
       <div className={CONTAINER}>
@@ -40,6 +38,7 @@ const DoctorSection = () => {
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   loading="lazy"
                   decoding="async"
+                  onError={handleImgError}
                 />
               </div>
               <div className="p-6 text-center">
@@ -51,7 +50,7 @@ const DoctorSection = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => navigate('/booking')}
+                  onClick={() => scrollToBooking()}
                   className={`${BTN_OUTLINE} w-full`}
                 >
                   Đặt lịch với bác sĩ

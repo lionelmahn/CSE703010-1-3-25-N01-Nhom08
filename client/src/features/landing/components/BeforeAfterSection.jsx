@@ -9,6 +9,7 @@ import {
   TITLE,
 } from '../styles';
 import { BEFORE_AFTER_CASES } from '../data';
+import { handleImgError } from '../utils';
 
 const BeforeAfterSection = () => (
   <section className={SECTION_ALT}>
@@ -33,6 +34,7 @@ const BeforeAfterSection = () => (
               className="w-full object-cover aspect-video group-hover:scale-105 transition duration-500"
               loading="lazy"
               decoding="async"
+              onError={handleImgError}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/0 to-transparent" />
             <span className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur text-white text-xs font-semibold px-3 py-1 rounded-full ring-1 ring-white/10">

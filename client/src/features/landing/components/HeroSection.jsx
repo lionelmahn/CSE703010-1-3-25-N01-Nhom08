@@ -1,14 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Phone, Star } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { BTN_PRIMARY_LG, BTN_SECONDARY, CONTAINER } from '../styles';
 import { CLINIC_CONTACT, HERO_STATS } from '../data';
+import { handleImgError, scrollToBooking } from '../utils';
 
 const HeroSection = () => {
-  const navigate = useNavigate();
-
   return (
     <>
       <section
@@ -40,7 +38,7 @@ const HeroSection = () => {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start pt-2">
                 <button
                   type="button"
-                  onClick={() => navigate('/booking')}
+                  onClick={() => scrollToBooking()}
                   className={BTN_PRIMARY_LG}
                 >
                   Đặt lịch ngay <ArrowRight className="w-4 h-4" />
@@ -63,6 +61,7 @@ const HeroSection = () => {
                       alt={`Khách hàng ${i}`}
                       loading="lazy"
                       decoding="async"
+                      onError={handleImgError}
                     />
                   ))}
                   <div className="w-10 h-10 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm">
@@ -88,8 +87,9 @@ const HeroSection = () => {
                   alt="Bác sĩ nha khoa"
                   className="w-full h-full object-cover"
                   loading="eager"
-                  fetchpriority="high"
+                  fetchPriority="high"
                   decoding="async"
+                  onError={handleImgError}
                 />
               </div>
 
