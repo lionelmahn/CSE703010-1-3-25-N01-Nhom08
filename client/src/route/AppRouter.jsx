@@ -22,6 +22,7 @@ import ProfessionalProfileManagement from '@/page/ProfessionalProfileManagement'
 import ServiceCatalogManagement from '@/page/ServiceCatalogManagement';
 import ServicePackageManagement from '@/page/ServicePackageManagement';
 import ServicePriceManagement from '@/page/ServicePriceManagement';
+import ToothStatusManagement from '@/page/ToothStatusManagement';
 import SystemSettings from '@/page/SystemSettings';
 import PatientList from '@/page/PatientList';
 import Appointments from '@/page/Appointments';
@@ -33,6 +34,7 @@ import HealthRecords from '@/page/HealthRecords';
 import MyProfessionalProfile from '@/page/MyProfessionalProfile';
 import WorkScheduleManagement from '@/page/WorkScheduleManagement';
 import MyWorkSchedule from '@/page/MyWorkSchedule';
+import OnlineBookingManagement from '@/page/OnlineBookingManagement';
 
 const ProtectedRoute = ({ children }) => {
   const { isLoggedIn } = useAuth();
@@ -89,10 +91,12 @@ const AppRouter = () => {
         <Route path="services" element={<PermissionRoute permission="services.view"><ServiceCatalogManagement /></PermissionRoute>} />
         <Route path="service-packages" element={<PermissionRoute permission="packages.view"><ServicePackageManagement /></PermissionRoute>} />
         <Route path="service-prices" element={<PermissionRoute permission="prices.view"><ServicePriceManagement /></PermissionRoute>} />
+        <Route path="tooth-statuses" element={<PermissionRoute permission="tooth_statuses.view"><ToothStatusManagement /></PermissionRoute>} />
         <Route path="settings" element={<PermissionRoute><SystemSettings /></PermissionRoute>} />
 
         <Route path="patients" element={<PermissionRoute permission="patients.view"><PatientList /></PermissionRoute>} />
         <Route path="appointments" element={<PermissionRoute permission="appointments.view"><Appointments /></PermissionRoute>} />
+        <Route path="online-bookings" element={<PermissionRoute permission="appointments.view"><OnlineBookingManagement /></PermissionRoute>} />
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
 
         <Route path="invoices" element={<PermissionRoute permission="finance.view"><InvoiceManagement /></PermissionRoute>} />

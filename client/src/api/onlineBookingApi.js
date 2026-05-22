@@ -7,6 +7,10 @@ import {
   TIME_SLOTS,
 } from '@/features/online-booking/data';
 import { generateLocalRequestCode } from '@/features/online-booking/utils';
+// Mock store dung chung voi UC6.2 (xu ly yeu cau dat lich online). Khi backend
+// Laravel san sang, mock fallback duoi day se khong chay nua va store nay co the
+// duoc deprecate.
+import { mockCreateRequest } from '@/features/online-booking-management/mockStore';
 
 /**
  * Service gọi API UC6.1 - Gửi yêu cầu đặt lịch online.
@@ -30,7 +34,7 @@ import { generateLocalRequestCode } from '@/features/online-booking/utils';
  *   }
  */
 
-const USE_MOCK_FALLBACK = true;
+const USE_MOCK_FALLBACK = false;
 
 const isMockableError = (error) => {
   if (!error) return false;
@@ -47,11 +51,31 @@ const mockSubmit = async (payload) => {
   await new Promise((resolve) => setTimeout(resolve, 600));
 
   const emailSent = Boolean(payload?.email) && Math.random() > 0.05; // ~A3
+  // Ghi vao shared mock store de yeu cau xuat hien o queue UC6.2 cua le tan.
+  let saved = null;
+  try {
+    saved = mockCreateRequest({
+      name: payload?.name,
+      phone: payload?.phone,
+      email: payload?.email,
+      service_ids: payload?.service_ids || (payload?.service_id ? [payload.service_id] : []),
+      branch_id: payload?.branch_id || payload?.branch,
+      preferred_date: payload?.preferred_date || payload?.date,
+      preferred_time_slot_id: payload?.preferred_time_slot_id || payload?.time_slot_id,
+      customer_note: payload?.note || payload?.customer_note,
+      source: payload?.source || SOURCE_LANDING_PAGE,
+      device: payload?.device,
+      ip: payload?.ip,
+    });
+  } catch {
+    // Neu store fail (vi du SSR), van tra ve mock payload toi thieu.
+    saved = null;
+  }
   return {
-    code: generateLocalRequestCode(),
-    status: REQUEST_STATUS.PENDING,
-    source: payload?.source || SOURCE_LANDING_PAGE,
-    submitted_at: new Date().toISOString(),
+    code: saved?.code || generateLocalRequestCode(),
+    status: saved?.status || REQUEST_STATUS.PENDING,
+    source: saved?.source || payload?.source || SOURCE_LANDING_PAGE,
+    submitted_at: saved?.submitted_at || new Date().toISOString(),
     email_sent: emailSent,
     payload,
     _mock: true,

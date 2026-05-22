@@ -21,5 +21,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ProfessionalProfileSeeder::class);
         $this->call(WorkShiftTemplateSeeder::class);
         $this->call(ToothStatusSeeder::class);
+        $this->call(PatientSeeder::class);
     }
 }

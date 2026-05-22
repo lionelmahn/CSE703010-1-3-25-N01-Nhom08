@@ -7,6 +7,7 @@ import {
   Calendar,
   ClipboardList,
   FileText,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -17,11 +18,16 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { usePendingRequestCount } from '@/features/online-booking-management/hooks/usePendingRequestCount';
 
 const MainLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const { userRole, userName, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const pendingOnlineBookings = usePendingRequestCount();
+  const badgeValues = {
+    pending_online_bookings: pendingOnlineBookings,
+  };
 
   const roleNames = {
     admin: 'Quan tri vien',
@@ -44,6 +50,7 @@ const MainLayout = () => {
     { icon: <Settings size={20} />, label: 'Cai dat he thong', path: '/settings', roles: ['admin'] },
     { icon: <Users size={20} />, label: 'Danh sach benh nhan', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },
     { icon: <Calendar size={20} />, label: 'Lich hen phong kham', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },
+    { icon: <Inbox size={20} />, label: 'Yeu cau dat lich online', path: '/online-bookings', roles: ['admin', 'le_tan'], permission: 'appointments.view', badge: 'pending_online_bookings' },
     { icon: <ClipboardList size={20} />, label: 'Quan ly benh an', path: '/medical-records', roles: ['admin', 'bac_si'], permission: 'dental_records.view' },
     { icon: <FileText size={20} />, label: 'Quan ly hoa don', path: '/invoices', roles: ['admin', 'ke_toan'], permission: 'finance.view' },
     { icon: <TrendingUp size={20} />, label: 'Bao cao doanh thu', path: '/revenue', roles: ['admin', 'ke_toan'], permission: 'reports.view' },
@@ -76,22 +83,41 @@ const MainLayout = () => {
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {authorizedMenus.map((item, index) => (
-            <NavLink
-              key={index}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
-                  isActive
-                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`
-              }
-            >
-              <div className="shrink-0">{item.icon}</div>
-              {isSidebarOpen && <span className="font-medium whitespace-nowrap">{item.label}</span>}
-            </NavLink>
-          ))}
+          {authorizedMenus.map((item, index) => {
+            const badgeCount = item.badge ? badgeValues[item.badge] : 0;
+            return (
+              <NavLink
+                key={index}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
+                    isActive
+                      ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`
+                }
+              >
+                <div className="shrink-0 relative">
+                  {item.icon}
+                  {!isSidebarOpen && badgeCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[9px] rounded-full font-bold flex items-center justify-center border border-slate-900">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
+                </div>
+                {isSidebarOpen && (
+                  <span className="font-medium whitespace-nowrap flex-1 flex items-center justify-between gap-2">
+                    <span>{item.label}</span>
+                    {badgeCount > 0 && (
+                      <span className="min-w-[20px] px-1.5 h-[18px] bg-red-500 text-white text-[10px] rounded-full font-bold flex items-center justify-center">
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-slate-800">

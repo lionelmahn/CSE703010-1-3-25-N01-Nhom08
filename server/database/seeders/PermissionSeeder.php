@@ -99,5 +99,21 @@ class PermissionSeeder extends Seeder
                 }
             }
         }
+
+        // UC6.2 — Le tan duoc xu ly yeu cau dat lich online + thao tac patient,
+        // appointment. Admin co them quyen reopen (BR-19) qua appointments.approve.
+        $receptionistPermissions = Permission::whereIn('slug', [
+            'appointments.view',
+            'appointments.create',
+            'appointments.edit',
+            'patients.view',
+            'patients.create',
+            'patients.edit',
+            'services.view',
+        ])->pluck('id')->all();
+        $receptionist = Role::where('slug', 'le_tan')->first();
+        if ($receptionist && ! empty($receptionistPermissions)) {
+            $receptionist->permissions()->syncWithoutDetaching($receptionistPermissions);
+        }
     }
 }

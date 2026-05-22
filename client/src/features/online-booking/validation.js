@@ -173,6 +173,9 @@ const isWithinWorkingHours = (slot) => {
  * Trim họ tên, lower-case email, sanitize ghi chú,...
  */
 export const buildBookingPayload = (form, { source = 'landing_page' } = {}) => ({
+  // BE Laravel chap nhan ca `name` lan `full_name`. Gui ca hai de tuong
+  // thich nguoc voi mock cu va cau truc API moi.
+  name: trimOrEmpty(form.name),
   full_name: trimOrEmpty(form.name),
   phone: trimOrEmpty(form.phone),
   email: trimOrEmpty(form.email).toLowerCase(),
@@ -182,6 +185,7 @@ export const buildBookingPayload = (form, { source = 'landing_page' } = {}) => (
   preferred_time_slot: form.timeSlotId,
   branch_id: form.branchId,
   note: sanitizeNote(form.note),
+  customer_note: sanitizeNote(form.note),
   accepted_terms: !!form.acceptedTerms,
   captcha_token: form.captchaToken || null,
   source,

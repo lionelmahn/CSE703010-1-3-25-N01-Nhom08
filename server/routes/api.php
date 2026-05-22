@@ -5,8 +5,11 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MyProfessionalProfileController;
 use App\Http\Controllers\Api\MyWorkScheduleController;
+use App\Http\Controllers\Api\OnlineBookingController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\ProfessionalProfileController;
+use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServicePackageController;
@@ -23,6 +26,12 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/public/services', [ServiceCatalogController::class, 'publicIndex']);
 Route::get('/public/service-groups', [ServiceCatalogController::class, 'groups']);
 Route::get('/public/service-packages', [ServicePackageController::class, 'publicIndex']);
+
+// UC6.1 - Public booking endpoints (no auth).
+Route::post('/public/online-bookings', [PublicBookingController::class, 'store']);
+Route::get('/public/clinic-services', [PublicBookingController::class, 'services']);
+Route::get('/public/clinic-branches', [PublicBookingController::class, 'branches']);
+Route::get('/public/time-slots', [PublicBookingController::class, 'timeSlots']);
 Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
 Route::post('/auth/google', [AuthController::class, 'googleLogin']);
 
@@ -194,5 +203,48 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tooth-status-proposals', [ToothStatusController::class, 'listProposals']);
         Route::post('/tooth-status-proposals/{proposal}/approve', [ToothStatusController::class, 'approveProposal'])->whereNumber('proposal');
         Route::post('/tooth-status-proposals/{proposal}/reject', [ToothStatusController::class, 'rejectProposal'])->whereNumber('proposal');
+    });
+
+    // UC6.2 - Online booking management.
+    Route::middleware('permission:appointments.view')->group(function () {
+        Route::get('/online-bookings', [OnlineBookingController::class, 'index']);
+        Route::get('/online-bookings/{id}', [OnlineBookingController::class, 'show'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:appointments.create')->group(function () {
+        Route::post('/online-bookings/{id}/start-processing', [OnlineBookingController::class, 'startProcessing'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/link-patient', [OnlineBookingController::class, 'linkPatient'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/create-patient', [OnlineBookingController::class, 'createPatient'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/confirm', [OnlineBookingController::class, 'confirm'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/propose-alternative', [OnlineBookingController::class, 'proposeAlternative'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/reject', [OnlineBookingController::class, 'reject'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/send-email', [OnlineBookingController::class, 'sendEmail'])->whereNumber('id');
+        Route::post('/online-bookings/{id}/resend-email', [OnlineBookingController::class, 'resendEmail'])->whereNumber('id');
+        Route::patch('/online-bookings/{id}/internal-note', [OnlineBookingController::class, 'updateInternalNote'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:appointments.approve')->group(function () {
+        Route::post('/online-bookings/{id}/reopen', [OnlineBookingController::class, 'reopen'])->whereNumber('id');
+    });
+
+    // UC5 - Patient profile management.
+    Route::middleware('permission:patients.view')->group(function () {
+        Route::get('/patients', [PatientController::class, 'index']);
+        Route::get('/patients/lookup', [PatientController::class, 'lookup']);
+        Route::get('/patients/sources', [PatientController::class, 'sources']);
+        Route::post('/patients/duplicate-check', [PatientController::class, 'duplicateCheck']);
+        Route::get('/patients/{id}', [PatientController::class, 'show'])->whereNumber('id');
+        Route::get('/patients/{id}/history', [PatientController::class, 'history'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:patients.create')->group(function () {
+        Route::post('/patients', [PatientController::class, 'store']);
+    });
+
+    Route::middleware('permission:patients.edit')->group(function () {
+        Route::put('/patients/{id}', [PatientController::class, 'update'])->whereNumber('id');
+        Route::post('/patients/{id}/deactivate', [PatientController::class, 'deactivate'])->whereNumber('id');
+        Route::post('/patients/{id}/reactivate', [PatientController::class, 'reactivate'])->whereNumber('id');
+        Route::post('/patients/merge', [PatientController::class, 'merge']);
     });
 });
