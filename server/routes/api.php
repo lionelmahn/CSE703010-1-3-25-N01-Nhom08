@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\LeaveRequestController;
@@ -225,6 +226,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:appointments.approve')->group(function () {
         Route::post('/online-bookings/{id}/reopen', [OnlineBookingController::class, 'reopen'])->whereNumber('id');
+    });
+
+    // UC7 - Quan ly lich hen chinh thuc.
+    Route::middleware('permission:appointments.view')->group(function () {
+        Route::get('/appointments', [AppointmentController::class, 'index']);
+        Route::get('/appointments/options', [AppointmentController::class, 'options']);
+        Route::get('/appointments/counts', [AppointmentController::class, 'counts']);
+        Route::get('/appointments/calendar', [AppointmentController::class, 'calendar']);
+        Route::get('/appointments/{id}', [AppointmentController::class, 'show'])->whereNumber('id');
+    });
+
+    Route::middleware('permission:appointments.create')->group(function () {
+        Route::post('/appointments', [AppointmentController::class, 'store']);
+        Route::put('/appointments/{id}', [AppointmentController::class, 'update'])->whereNumber('id');
+        Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->whereNumber('id');
+        Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->whereNumber('id');
     });
 
     // UC5 - Patient profile management.
