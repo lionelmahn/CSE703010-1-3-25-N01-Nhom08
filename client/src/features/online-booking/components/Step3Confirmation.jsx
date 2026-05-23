@@ -27,17 +27,24 @@ const SummaryRow = ({ label, value }) => (
   </div>
 );
 
-const Step3Confirmation = ({ form, errors, onChange }) => {
+const Step3Confirmation = ({
+  form,
+  errors,
+  onChange,
+  services = BOOKING_SERVICES,
+  branches = CLINIC_BRANCHES,
+  timeSlots = TIME_SLOTS,
+}) => {
   const needLabel =
     BOOKING_NEEDS.find((n) => n.id === form.need)?.label || '';
   const serviceLabels = (form.serviceIds || [])
-    .map((id) => BOOKING_SERVICES.find((s) => s.id === id)?.label)
+    .map((id) => services.find((s) => s.id === id)?.label)
     .filter(Boolean)
     .join(', ');
   const slotLabel =
-    TIME_SLOTS.find((s) => s.id === form.timeSlotId)?.label || '';
+    timeSlots.find((s) => s.id === form.timeSlotId)?.label || '';
   const branchLabel =
-    CLINIC_BRANCHES.find((b) => b.id === form.branchId)?.label || '';
+    branches.find((b) => b.id === form.branchId)?.label || '';
   const sanitizedNote = sanitizeNote(form.note);
 
   return (

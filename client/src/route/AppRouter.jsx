@@ -26,6 +26,7 @@ import ToothStatusManagement from '@/page/ToothStatusManagement';
 import SystemSettings from '@/page/SystemSettings';
 import PatientList from '@/page/PatientList';
 import Appointments from '@/page/Appointments';
+import DoctorDispatch from '@/page/DoctorDispatch';
 import MedicalRecords from '@/page/MedicalRecords';
 import InvoiceManagement from '@/page/InvoiceManagement';
 import RevenueReport from '@/page/RevenueReport';
@@ -96,6 +97,7 @@ const AppRouter = () => {
 
         <Route path="patients" element={<PermissionRoute permission="patients.view"><PatientList /></PermissionRoute>} />
         <Route path="appointments" element={<PermissionRoute permission="appointments.view"><Appointments /></PermissionRoute>} />
+        <Route path="doctor-dispatch" element={<PermissionRoute permission="appointments.assign"><DoctorDispatch /></PermissionRoute>} />
         <Route path="online-bookings" element={<PermissionRoute permission="appointments.view"><OnlineBookingManagement /></PermissionRoute>} />
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
 

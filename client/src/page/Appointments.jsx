@@ -11,6 +11,9 @@ import AppointmentFormDialog from '@/features/appointment-management/components/
 import AppointmentDetailDialog from '@/features/appointment-management/components/AppointmentDetailDialog';
 import RescheduleDialog from '@/features/appointment-management/components/RescheduleDialog';
 import CancelDialog from '@/features/appointment-management/components/CancelDialog';
+import AssignDoctorDialog from '@/features/appointment-management/components/AssignDoctorDialog';
+import ReassignDoctorDialog from '@/features/appointment-management/components/ReassignDoctorDialog';
+import UnassignDoctorDialog from '@/features/appointment-management/components/UnassignDoctorDialog';
 import CalendarHeader from '@/features/appointment-management/components/CalendarHeader';
 import DayCalendarGrid from '@/features/appointment-management/components/DayCalendarGrid';
 import WeekCalendarGrid from '@/features/appointment-management/components/WeekCalendarGrid';
@@ -34,6 +37,9 @@ const Appointments = () => {
   const { toast } = useToast();
   const { userRole, hasPermission } = useAuth();
   const canMutate = userRole === 'admin' || hasPermission?.('appointments.create');
+  const canAssign = userRole === 'admin' || hasPermission?.('appointments.assign');
+  const canReassign = userRole === 'admin' || hasPermission?.('appointments.reassign');
+  const canUnassign = userRole === 'admin' || hasPermission?.('appointments.unassign');
 
   const list = useAppointmentList();
   const { branches, statuses, sources } = useAppointmentOptions('');
@@ -52,6 +58,10 @@ const Appointments = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  // UC8 - dispatch dialogs.
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [unassignOpen, setUnassignOpen] = useState(false);
 
   const [activeId, setActiveId] = useState(null);
   const [activeAppointment, setActiveAppointment] = useState(null);
@@ -137,6 +147,55 @@ const Appointments = () => {
     }
   };
 
+  // UC8 - Phan cong bac si.
+  const handleAssign = async (payload) => {
+    if (!activeAppointment) return;
+    setSubmitting(true);
+    setServerErrors({});
+    try {
+      const res = await appointmentApi.assignDoctor(activeAppointment.id, payload);
+      toast({ title: 'Da phan cong bac si', description: res?.data?.assigned_doctor?.name });
+      setAssignOpen(false);
+      await Promise.all([loadDetail(activeAppointment.id), list.refresh(), calendar.refresh()]);
+    } catch (err) {
+      handleError(err, 'Khong the phan cong bac si.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReassign = async (payload) => {
+    if (!activeAppointment) return;
+    setSubmitting(true);
+    setServerErrors({});
+    try {
+      const res = await appointmentApi.reassignDoctor(activeAppointment.id, payload);
+      toast({ title: 'Da doi bac si', description: res?.data?.assigned_doctor?.name });
+      setReassignOpen(false);
+      await Promise.all([loadDetail(activeAppointment.id), list.refresh(), calendar.refresh()]);
+    } catch (err) {
+      handleError(err, 'Khong the doi bac si.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUnassign = async (payload) => {
+    if (!activeAppointment) return;
+    setSubmitting(true);
+    setServerErrors({});
+    try {
+      const res = await appointmentApi.unassignDoctor(activeAppointment.id, payload);
+      toast({ title: 'Da go phan cong', description: res?.data?.code });
+      setUnassignOpen(false);
+      await Promise.all([loadDetail(activeAppointment.id), list.refresh(), calendar.refresh()]);
+    } catch (err) {
+      handleError(err, 'Khong the go phan cong.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCancel = async (reason) => {
     if (!activeAppointment) return;
     setSubmitting(true);
@@ -161,7 +220,7 @@ const Appointments = () => {
             <Calendar size={20} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-800">Quan ly lich hen (UC7)</h3>
+            <h3 className="text-xl font-bold text-slate-800">Quan ly lich hen</h3>
             <p className="text-xs text-slate-500">Tao, doi lich, huy lich va theo doi trang thai tat ca lich hen chinh thuc cua phong kham.</p>
           </div>
         </div>
@@ -271,7 +330,37 @@ const Appointments = () => {
         loading={detailLoading}
         onReschedule={() => setRescheduleOpen(true)}
         onCancel={() => setCancelOpen(true)}
+        onAssign={canAssign ? () => setAssignOpen(true) : undefined}
+        onReassign={canReassign ? () => setReassignOpen(true) : undefined}
+        onUnassign={canUnassign ? () => setUnassignOpen(true) : undefined}
         canMutate={canMutate}
+      />
+
+      <AssignDoctorDialog
+        open={assignOpen}
+        onOpenChange={(v) => { setAssignOpen(v); if (!v) setServerErrors({}); }}
+        appointment={activeAppointment}
+        onSubmit={handleAssign}
+        submitting={submitting}
+        serverErrors={serverErrors}
+      />
+
+      <ReassignDoctorDialog
+        open={reassignOpen}
+        onOpenChange={(v) => { setReassignOpen(v); if (!v) setServerErrors({}); }}
+        appointment={activeAppointment}
+        onSubmit={handleReassign}
+        submitting={submitting}
+        serverErrors={serverErrors}
+      />
+
+      <UnassignDoctorDialog
+        open={unassignOpen}
+        onOpenChange={(v) => { setUnassignOpen(v); if (!v) setServerErrors({}); }}
+        appointment={activeAppointment}
+        onSubmit={handleUnassign}
+        submitting={submitting}
+        serverErrors={serverErrors}
       />
 
       <RescheduleDialog

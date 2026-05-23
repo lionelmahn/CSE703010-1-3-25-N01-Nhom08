@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import StatusBadge from './StatusBadge';
 import { APPOINTMENT_SOURCE_LABEL } from '../constants';
+import { useAppointmentLookups } from '../hooks/useAppointmentLookups';
 
 const formatDate = (d) => {
   if (!d) return '-';
@@ -40,6 +41,7 @@ const AppointmentTable = ({
 }) => {
   const isEmpty = !loading && items.length === 0;
   const lastPage = meta.last_page || 1;
+  const { getBranchName } = useAppointmentLookups();
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white">
@@ -97,7 +99,7 @@ const AppointmentTable = ({
                 </TableCell>
                 <TableCell className="text-sm">{formatDate(a.appointment_date)}</TableCell>
                 <TableCell className="text-sm">{formatSlot(a.time_slot)}</TableCell>
-                <TableCell className="text-xs">{a.branch_id || '-'}</TableCell>
+                <TableCell className="text-xs">{getBranchName(a.branch_id) || a.branch_id || '-'}</TableCell>
                 <TableCell className="text-xs">{a.assigned_doctor?.name || <span className="text-slate-400">Chua phan cong</span>}</TableCell>
                 <TableCell className="text-xs">{APPOINTMENT_SOURCE_LABEL[a.source] || a.source || '-'}</TableCell>
                 <TableCell><StatusBadge status={a.status} /></TableCell>

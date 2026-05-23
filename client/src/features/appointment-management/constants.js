@@ -48,7 +48,7 @@ export const APPOINTMENT_SOURCE = {
 };
 
 export const APPOINTMENT_SOURCE_LABEL = {
-  [APPOINTMENT_SOURCE.ONLINE]: 'Online (UC6.2)',
+  [APPOINTMENT_SOURCE.ONLINE]: 'Dat lich online',
   [APPOINTMENT_SOURCE.WALK_IN]: 'Truc tiep tai quay',
   [APPOINTMENT_SOURCE.PHONE]: 'Dien thoai',
   [APPOINTMENT_SOURCE.FOLLOW_UP]: 'Tai kham',
@@ -60,6 +60,10 @@ export const HISTORY_ACTION_LABEL = {
   rescheduled: 'Doi lich',
   cancelled: 'Huy lich',
   status_changed: 'Cap nhat trang thai',
+  // UC8 - Dieu phoi bac si.
+  assigned: 'Phan cong bac si',
+  reassigned: 'Doi bac si',
+  unassigned: 'Go phan cong bac si',
 };
 
 export const DEFAULT_FILTERS = {

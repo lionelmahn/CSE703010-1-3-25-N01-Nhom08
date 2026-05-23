@@ -341,6 +341,210 @@ class AppointmentService
     }
 
     /**
+     * UC8 - List lich hen `cho_phan_cong_bac_si` cho dispatch queue.
+     */
+    public function pendingForAssignment(array $filters = []): LengthAwarePaginator
+    {
+        $perPage = (int) ($filters['per_page'] ?? 20);
+        $perPage = max(1, min(100, $perPage));
+
+        $query = Appointment::query()
+            ->with(['patient:id,patient_code,full_name,phone', 'creator:id,name'])
+            ->where('status', Appointment::STATUS_WAITING_DOCTOR_ASSIGNMENT);
+
+        if (! empty($filters['branch_id']) && $filters['branch_id'] !== 'all') {
+            $query->where('branch_id', $filters['branch_id']);
+        }
+        if (! empty($filters['date'])) {
+            $query->whereDate('appointment_date', $filters['date']);
+        }
+        if (! empty($filters['date_from'])) {
+            $query->whereDate('appointment_date', '>=', $filters['date_from']);
+        }
+        if (! empty($filters['date_to'])) {
+            $query->whereDate('appointment_date', '<=', $filters['date_to']);
+        }
+        if (! empty($filters['q'])) {
+            $term = '%'.$filters['q'].'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('code', 'like', $term)
+                    ->orWhereHas('patient', function ($pq) use ($term) {
+                        $pq->where('full_name', 'like', $term)
+                            ->orWhere('phone', 'like', $term)
+                            ->orWhere('patient_code', 'like', $term);
+                    });
+            });
+        }
+
+        return $query
+            ->orderBy('appointment_date')
+            ->orderBy('time_slot')
+            ->paginate($perPage);
+    }
+
+    /**
+     * UC8 - Phan cong bac si (SR1 -> SR2). Cap nhat
+     * status `cho_phan_cong_bac_si` -> `da_phan_cong_bac_si`,
+     * ghi history action=assigned.
+     */
+    public function assignDoctor(Appointment $appointment, int $doctorUserId, array $payload, User $actor): Appointment
+    {
+        return DB::transaction(function () use ($appointment, $doctorUserId, $payload, $actor) {
+            // VR15 - lock row de tranh concurrent update.
+            $locked = Appointment::query()->lockForUpdate()->find($appointment->id);
+            if (! $locked) {
+                throw ValidationException::withMessages([
+                    'appointment_id' => 'VR1: Khong tim thay lich hen.',
+                ]);
+            }
+
+            // VR2 / SR5 - chi cho phep tu trang thai cho_phan_cong_bac_si.
+            if (! $locked->canAssignDoctor()) {
+                throw ValidationException::withMessages([
+                    'status' => 'VR2: Trang thai lich hen khong cho phep phan cong bac si.',
+                ]);
+            }
+
+            $availability = app(DoctorAvailabilityService::class);
+            $check = $availability->validateAssignment($doctorUserId, $locked, ignoreSelf: true);
+            if (! $check['ok']) {
+                throw ValidationException::withMessages($check['errors']);
+            }
+
+            $locked->fill([
+                'assigned_doctor_id' => $doctorUserId,
+                'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+                'updated_by' => $actor->id,
+            ])->save();
+
+            $this->logHistory(
+                $locked,
+                action: AppointmentStatusHistory::ACTION_ASSIGNED,
+                fromStatus: Appointment::STATUS_WAITING_DOCTOR_ASSIGNMENT,
+                toStatus: Appointment::STATUS_DOCTOR_ASSIGNED,
+                reason: $payload['note'] ?? null,
+                actor: $actor,
+                metadata: [
+                    'new_doctor_id' => $doctorUserId,
+                    'note' => $payload['note'] ?? null,
+                ],
+            );
+
+            return $this->findAppointment($locked->id);
+        });
+    }
+
+    /**
+     * UC8 - Doi bac si (AC9, AC10, AC11). Giu nguyen status (SR3),
+     * ghi history action=reassigned voi metadata.old/new.
+     *
+     * Voi status `da_check_in`, yeu cau actor co role admin (VR12 / SEC3).
+     */
+    public function reassignDoctor(Appointment $appointment, int $newDoctorUserId, array $payload, User $actor): Appointment
+    {
+        return DB::transaction(function () use ($appointment, $newDoctorUserId, $payload, $actor) {
+            $locked = Appointment::query()->lockForUpdate()->find($appointment->id);
+            if (! $locked) {
+                throw ValidationException::withMessages([
+                    'appointment_id' => 'VR1: Khong tim thay lich hen.',
+                ]);
+            }
+
+            if (! $locked->canReassignDoctor()) {
+                throw ValidationException::withMessages([
+                    'status' => 'VR11: Trang thai lich hen khong cho phep doi bac si.',
+                ]);
+            }
+
+            // VR12 / SEC3 - lich da check-in chi admin moi duoc doi.
+            if ($locked->status === Appointment::STATUS_CHECKED_IN && ! $actor->hasRole('admin')) {
+                throw ValidationException::withMessages([
+                    'permission' => 'VR12: Lich da check-in chi Admin moi co quyen doi bac si.',
+                ]);
+            }
+
+            $oldDoctorId = $locked->assigned_doctor_id;
+            if ($oldDoctorId === $newDoctorUserId) {
+                throw ValidationException::withMessages([
+                    'doctor_id' => 'VR13: Bac si moi trung voi bac si hien tai.',
+                ]);
+            }
+
+            $availability = app(DoctorAvailabilityService::class);
+            $check = $availability->validateAssignment($newDoctorUserId, $locked, ignoreSelf: true);
+            if (! $check['ok']) {
+                throw ValidationException::withMessages($check['errors']);
+            }
+
+            $locked->fill([
+                'assigned_doctor_id' => $newDoctorUserId,
+                'updated_by' => $actor->id,
+            ])->save();
+
+            $this->logHistory(
+                $locked,
+                action: AppointmentStatusHistory::ACTION_REASSIGNED,
+                fromStatus: $locked->status,
+                toStatus: $locked->status,
+                reason: $payload['reason'],
+                actor: $actor,
+                metadata: [
+                    'old_doctor_id' => $oldDoctorId,
+                    'new_doctor_id' => $newDoctorUserId,
+                    'note' => $payload['note'] ?? null,
+                ],
+            );
+
+            return $this->findAppointment($locked->id);
+        });
+    }
+
+    /**
+     * UC8 - Huy phan cong bac si (AC12, AC13, AC14). Status quay ve
+     * `cho_phan_cong_bac_si` (SR4), ghi history action=unassigned.
+     */
+    public function unassignDoctor(Appointment $appointment, array $payload, User $actor): Appointment
+    {
+        return DB::transaction(function () use ($appointment, $payload, $actor) {
+            $locked = Appointment::query()->lockForUpdate()->find($appointment->id);
+            if (! $locked) {
+                throw ValidationException::withMessages([
+                    'appointment_id' => 'VR1: Khong tim thay lich hen.',
+                ]);
+            }
+
+            if (! $locked->canUnassignDoctor()) {
+                throw ValidationException::withMessages([
+                    'status' => 'VR11: Trang thai lich hen khong cho phep huy phan cong.',
+                ]);
+            }
+
+            $oldDoctorId = $locked->assigned_doctor_id;
+
+            $locked->fill([
+                'assigned_doctor_id' => null,
+                'status' => Appointment::STATUS_WAITING_DOCTOR_ASSIGNMENT,
+                'updated_by' => $actor->id,
+            ])->save();
+
+            $this->logHistory(
+                $locked,
+                action: AppointmentStatusHistory::ACTION_UNASSIGNED,
+                fromStatus: Appointment::STATUS_DOCTOR_ASSIGNED,
+                toStatus: Appointment::STATUS_WAITING_DOCTOR_ASSIGNMENT,
+                reason: $payload['reason'],
+                actor: $actor,
+                metadata: [
+                    'old_doctor_id' => $oldDoctorId,
+                    'note' => $payload['note'] ?? null,
+                ],
+            );
+
+            return $this->findAppointment($locked->id);
+        });
+    }
+
+    /**
      * UC7 - Du lieu cho calendar view (Day/Week/Month).
      *
      * KHONG mutate du lieu. Chi doc tu DB voi cac filter co ban

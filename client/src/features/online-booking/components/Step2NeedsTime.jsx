@@ -27,7 +27,14 @@ const FieldError = ({ message }) =>
     </p>
   ) : null;
 
-const Step2NeedsTime = ({ form, errors, onChange }) => {
+const Step2NeedsTime = ({
+  form,
+  errors,
+  onChange,
+  services = BOOKING_SERVICES,
+  branches = CLINIC_BRANCHES,
+  timeSlots = TIME_SLOTS,
+}) => {
   // Mốc ngày dùng cho input `min/max`. Tính một lần khi mount để tránh
   // re-eval khi component re-render (đồng thời thoả `react-hooks/purity`).
   const { today, maxDate } = useMemo(() => {
@@ -87,7 +94,7 @@ const Step2NeedsTime = ({ form, errors, onChange }) => {
               </span>
             </Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-2 text-sm text-gray-600">
-              {BOOKING_SERVICES.map((svc) => {
+              {services.map((svc) => {
                 const checked = (form.serviceIds || []).includes(svc.id);
                 return (
                   <label
@@ -168,13 +175,13 @@ const Step2NeedsTime = ({ form, errors, onChange }) => {
                 className={cn(
                   'mt-1.5 rounded-lg',
                   errors.timeSlotId &&
-                    'border-red-400 focus:ring-red-300',
+                  'border-red-400 focus:ring-red-300',
                 )}
               >
                 <SelectValue placeholder="Chọn khung giờ" />
               </SelectTrigger>
               <SelectContent>
-                {TIME_SLOTS.map((slot) => (
+                {timeSlots.map((slot) => (
                   <SelectItem
                     key={slot.id}
                     value={slot.id}
@@ -210,7 +217,7 @@ const Step2NeedsTime = ({ form, errors, onChange }) => {
                 <SelectValue placeholder="Chọn chi nhánh" />
               </SelectTrigger>
               <SelectContent>
-                {CLINIC_BRANCHES.map((branch) => (
+                {branches.map((branch) => (
                   <SelectItem
                     key={branch.id}
                     value={branch.id}

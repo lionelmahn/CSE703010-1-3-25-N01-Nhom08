@@ -11,7 +11,13 @@ import Step1PersonalInfo from './Step1PersonalInfo';
 import Step2NeedsTime from './Step2NeedsTime';
 import Step3Confirmation from './Step3Confirmation';
 import Step4Success from './Step4Success';
-import { INITIAL_BOOKING_FORM, SOURCE_LANDING_PAGE } from '../data';
+import {
+  BOOKING_SERVICES,
+  CLINIC_BRANCHES,
+  INITIAL_BOOKING_FORM,
+  SOURCE_LANDING_PAGE,
+  TIME_SLOTS,
+} from '../data';
 import {
   buildBookingPayload,
   validateAll,
@@ -56,6 +62,11 @@ const BookingWizard = ({
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [catalogs, setCatalogs] = useState({
+    services: BOOKING_SERVICES,
+    branches: CLINIC_BRANCHES,
+    timeSlots: TIME_SLOTS,
+  });
   // Theo dõi step trước đó để chỉ cuộn khi user *đổi* step.
   // Một flag `didMount` không đủ vì <StrictMode> dev double-fire effect trên
   // CÙNG một instance — flag sẽ bị set ở lần fire đầu rồi tự kích hoạt cuộn
@@ -76,6 +87,36 @@ const BookingWizard = ({
     }
   }, [step, variant]);
 
+  useEffect(() => {
+    let alive = true;
+
+    const unwrapData = (payload, fallback) => {
+      const items = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      return items.length > 0 ? items : fallback;
+    };
+
+    Promise.all([
+      onlineBookingApi.getServices().catch(() => BOOKING_SERVICES),
+      onlineBookingApi.getBranches().catch(() => CLINIC_BRANCHES),
+      onlineBookingApi.getTimeSlots().catch(() => TIME_SLOTS),
+    ]).then(([servicesPayload, branchesPayload, slotsPayload]) => {
+      if (!alive) return;
+      setCatalogs({
+        services: unwrapData(servicesPayload, BOOKING_SERVICES),
+        branches: unwrapData(branchesPayload, CLINIC_BRANCHES),
+        timeSlots: unwrapData(slotsPayload, TIME_SLOTS),
+      });
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -90,7 +131,7 @@ const BookingWizard = ({
   const goNext = () => {
     let stepErrors = {};
     if (step === 1) stepErrors = validateStep1(form);
-    else if (step === 2) stepErrors = validateStep2(form);
+    else if (step === 2) stepErrors = validateStep2(form, catalogs);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       toast({
@@ -110,7 +151,7 @@ const BookingWizard = ({
   };
 
   const handleSubmit = async () => {
-    const allErrors = validateAll(form);
+    const allErrors = validateAll(form, catalogs);
     const onlyStep3 = validateStep3(form);
     if (Object.keys(allErrors).length > 0) {
       setErrors(allErrors);
@@ -189,6 +230,9 @@ const BookingWizard = ({
             form={form}
             errors={errors}
             onChange={handleChange}
+            services={catalogs.services}
+            branches={catalogs.branches}
+            timeSlots={catalogs.timeSlots}
           />
         )}
         {step === 3 && (
@@ -196,6 +240,9 @@ const BookingWizard = ({
             form={form}
             errors={errors}
             onChange={handleChange}
+            services={catalogs.services}
+            branches={catalogs.branches}
+            timeSlots={catalogs.timeSlots}
           />
         )}
         {step === 4 && (

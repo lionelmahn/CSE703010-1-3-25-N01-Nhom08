@@ -14,6 +14,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Stethoscope,
   TrendingUp,
   Users,
   X,
@@ -50,6 +51,7 @@ const MainLayout = () => {
     { icon: <Settings size={20} />, label: 'Cai dat he thong', path: '/settings', roles: ['admin'] },
     { icon: <Users size={20} />, label: 'Danh sach benh nhan', path: '/patients', roles: ['admin', 'bac_si', 'le_tan'], permission: 'patients.view' },
     { icon: <Calendar size={20} />, label: 'Lich hen phong kham', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },
+    { icon: <Stethoscope size={20} />, label: 'Dieu phoi bac si', path: '/doctor-dispatch', roles: ['admin', 'le_tan'], permission: 'appointments.assign' },
     { icon: <Inbox size={20} />, label: 'Yeu cau dat lich online', path: '/online-bookings', roles: ['admin', 'le_tan'], permission: 'appointments.view', badge: 'pending_online_bookings' },
     { icon: <ClipboardList size={20} />, label: 'Quan ly benh an', path: '/medical-records', roles: ['admin', 'bac_si'], permission: 'dental_records.view' },
     { icon: <FileText size={20} />, label: 'Quan ly hoa don', path: '/invoices', roles: ['admin', 'ke_toan'], permission: 'finance.view' },
@@ -90,10 +92,9 @@ const MainLayout = () => {
                 key={index}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${
-                    isActive
-                      ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  `flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all ${isActive
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`
                 }
               >

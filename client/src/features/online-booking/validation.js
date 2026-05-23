@@ -55,8 +55,11 @@ export const validateStep1 = (form) => {
  *  - VR12: Ghi chú <= 500 ký tự
  *  - DR8 (E12): Dịch vụ / chi nhánh phải đang hoạt động (active)
  */
-export const validateStep2 = (form) => {
+export const validateStep2 = (form, catalogs = {}) => {
   const errors = {};
+  const services = catalogs.services || BOOKING_SERVICES;
+  const branches = catalogs.branches || CLINIC_BRANCHES;
+  const timeSlots = catalogs.timeSlots || TIME_SLOTS;
 
   if (!form.need) {
     errors.need = 'Vui lòng chọn nhu cầu khám';
@@ -67,11 +70,11 @@ export const validateStep2 = (form) => {
     errors.serviceIds = 'Chưa chọn dịch vụ quan tâm';
   } else {
     const inactivePicked = form.serviceIds.find((id) => {
-      const svc = BOOKING_SERVICES.find((s) => s.id === id);
+      const svc = services.find((s) => s.id === id);
       return svc && svc.active === false;
     });
     if (inactivePicked) {
-      const svc = BOOKING_SERVICES.find((s) => s.id === inactivePicked);
+      const svc = services.find((s) => s.id === inactivePicked);
       errors.serviceIds = `Dịch vụ "${svc?.label ?? inactivePicked}" hiện đang tạm ngừng. Vui lòng chọn dịch vụ khác.`;
     }
   }
@@ -94,12 +97,12 @@ export const validateStep2 = (form) => {
   if (!form.timeSlotId) {
     errors.timeSlotId = 'Vui lòng chọn khung giờ mong muốn';
   } else {
-    const slot = findTimeSlot(form.timeSlotId);
+    const slot = findTimeSlot(form.timeSlotId, timeSlots);
     if (!slot) {
       errors.timeSlotId = 'Khung giờ không hợp lệ';
     } else if (slot.break) {
       errors.timeSlotId = 'Khung giờ không khả dụng (ca nghỉ)';
-    } else if (!isWithinWorkingHours(slot)) {
+    } else if (!isWithinWorkingHours(slot, timeSlots)) {
       errors.timeSlotId = 'Ngoài giờ hoạt động';
     } else if (!errors.date && form.date) {
       const diff = daysFromToday(form.date);
@@ -117,7 +120,7 @@ export const validateStep2 = (form) => {
   if (!form.branchId) {
     errors.branchId = 'Vui lòng chọn chi nhánh';
   } else {
-    const branch = CLINIC_BRANCHES.find((b) => b.id === form.branchId);
+    const branch = branches.find((b) => b.id === form.branchId);
     if (!branch) {
       errors.branchId = 'Chi nhánh không hợp lệ';
     } else if (!branch.active) {
@@ -152,9 +155,9 @@ export const validateStep3 = (form) => {
 /**
  * Validate toàn bộ trước khi submit.
  */
-export const validateAll = (form) => ({
+export const validateAll = (form, catalogs = {}) => ({
   ...validateStep1(form),
-  ...validateStep2(form),
+  ...validateStep2(form, catalogs),
   ...validateStep3(form),
 });
 
@@ -162,9 +165,9 @@ export const validateAll = (form) => ({
  * Slot có nằm trong dải giờ làm việc không. Cấu hình working hours được
  * suy ra trực tiếp từ TIME_SLOTS (slot không phải break).
  */
-const isWithinWorkingHours = (slot) => {
-  const open = TIME_SLOTS[0]?.start ?? 8 * 60;
-  const close = TIME_SLOTS[TIME_SLOTS.length - 1]?.end ?? 18 * 60;
+const isWithinWorkingHours = (slot, timeSlots = TIME_SLOTS) => {
+  const open = timeSlots[0]?.start ?? 8 * 60;
+  const close = timeSlots[timeSlots.length - 1]?.end ?? 18 * 60;
   return slot.start >= open && slot.end <= close;
 };
 

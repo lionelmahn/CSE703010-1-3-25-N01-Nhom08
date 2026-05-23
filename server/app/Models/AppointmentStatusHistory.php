@@ -20,6 +20,17 @@ class AppointmentStatusHistory extends Model
     public const ACTION_CANCELLED = 'cancelled';
     public const ACTION_STATUS_CHANGED = 'status_changed';
 
+    // UC8 - dieu phoi bac si.
+    public const ACTION_ASSIGNED = 'assigned';
+    public const ACTION_REASSIGNED = 'reassigned';
+    public const ACTION_UNASSIGNED = 'unassigned';
+
+    public const DISPATCH_ACTIONS = [
+        self::ACTION_ASSIGNED,
+        self::ACTION_REASSIGNED,
+        self::ACTION_UNASSIGNED,
+    ];
+
     protected $fillable = [
         'appointment_id',
         'action',

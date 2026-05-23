@@ -64,7 +64,8 @@ class PublicBookingController extends Controller
             ->orderBy('name')
             ->get(['id', 'service_code', 'name'])
             ->map(fn ($s) => [
-                'id' => $s->service_code ?: (string) $s->id,
+                'id' => (string) $s->id,
+                'code' => $s->service_code,
                 'label' => $s->name,
                 'active' => true,
             ]);
@@ -79,7 +80,8 @@ class PublicBookingController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name'])
             ->map(fn ($b) => [
-                'id' => $b->code ?: (string) $b->id,
+                'id' => (string) $b->id,
+                'code' => $b->code,
                 'label' => $b->name,
                 'active' => true,
             ]);

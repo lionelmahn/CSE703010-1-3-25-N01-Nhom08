@@ -92,7 +92,7 @@ const AppointmentFormDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tao lich hen moi (UC7)</DialogTitle>
+          <DialogTitle>Tao lich hen moi</DialogTitle>
           <DialogDescription>
             Trang thai mac dinh khi tao moi la <b>Cho phan cong bac si</b>.
             Phan cong bac si se duoc thuc hien o UC8.

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MyProfessionalProfileController;
 use App\Http\Controllers\Api\MyWorkScheduleController;
@@ -234,7 +235,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/appointments/options', [AppointmentController::class, 'options']);
         Route::get('/appointments/counts', [AppointmentController::class, 'counts']);
         Route::get('/appointments/calendar', [AppointmentController::class, 'calendar']);
+        Route::get('/appointments/pending-assignment', [AppointmentController::class, 'pendingForAssignment']);
         Route::get('/appointments/{id}', [AppointmentController::class, 'show'])->whereNumber('id');
+        Route::get('/appointments/{id}/available-doctors', [AppointmentController::class, 'availableDoctors'])->whereNumber('id');
+
+        // UC8 - Doctor lookup + availability + workload.
+        Route::get('/doctors', [DoctorController::class, 'index']);
+        Route::get('/doctors/workload', [DoctorController::class, 'workload']);
+        Route::get('/doctors/{id}/availability', [DoctorController::class, 'availability'])->whereNumber('id');
     });
 
     Route::middleware('permission:appointments.create')->group(function () {
@@ -242,6 +250,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/appointments/{id}', [AppointmentController::class, 'update'])->whereNumber('id');
         Route::post('/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule'])->whereNumber('id');
         Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->whereNumber('id');
+    });
+
+    // UC8 - Dieu phoi bac si.
+    Route::middleware('permission:appointments.assign')->group(function () {
+        Route::post('/appointments/{id}/assign-doctor', [AppointmentController::class, 'assignDoctor'])->whereNumber('id');
+    });
+    Route::middleware('permission:appointments.reassign')->group(function () {
+        Route::post('/appointments/{id}/reassign-doctor', [AppointmentController::class, 'reassignDoctor'])->whereNumber('id');
+    });
+    Route::middleware('permission:appointments.unassign')->group(function () {
+        Route::post('/appointments/{id}/unassign-doctor', [AppointmentController::class, 'unassignDoctor'])->whereNumber('id');
     });
 
     // UC5 - Patient profile management.

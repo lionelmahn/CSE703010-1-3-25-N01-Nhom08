@@ -115,5 +115,27 @@ class PermissionSeeder extends Seeder
         if ($receptionist && ! empty($receptionistPermissions)) {
             $receptionist->permissions()->syncWithoutDetaching($receptionistPermissions);
         }
+
+        // UC8 — Dieu phoi bac si. Tach 3 slug rieng (assign / reassign /
+        // unassign) ngoai matrix module.action vi rieng cho appointments.
+        $dispatchSlugs = [
+            'appointments.assign' => 'Phan cong bac si cho lich hen',
+            'appointments.reassign' => 'Doi bac si cho lich hen',
+            'appointments.unassign' => 'Huy phan cong bac si',
+        ];
+        $dispatchIds = [];
+        foreach ($dispatchSlugs as $slug => $name) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'appointments']
+            );
+            $dispatchIds[] = $permission->id;
+        }
+        if ($adminRole && ! empty($dispatchIds)) {
+            $adminRole->permissions()->syncWithoutDetaching($dispatchIds);
+        }
+        if ($receptionist && ! empty($dispatchIds)) {
+            $receptionist->permissions()->syncWithoutDetaching($dispatchIds);
+        }
     }
 }

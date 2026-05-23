@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Appointment\AssignDoctorRequest;
 use App\Http\Requests\Appointment\CancelAppointmentRequest;
+use App\Http\Requests\Appointment\ReassignDoctorRequest;
 use App\Http\Requests\Appointment\RescheduleAppointmentRequest;
 use App\Http\Requests\Appointment\StoreAppointmentRequest;
+use App\Http\Requests\Appointment\UnassignDoctorRequest;
 use App\Http\Requests\Appointment\UpdateAppointmentRequest;
 use App\Models\Appointment;
 use App\Models\Branch;
 use App\Models\Patient;
 use App\Services\AppointmentService;
+use App\Services\DoctorAvailabilityService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,8 +31,10 @@ use Illuminate\Http\Request;
  */
 class AppointmentController extends Controller
 {
-    public function __construct(private readonly AppointmentService $appointments)
-    {
+    public function __construct(
+        private readonly AppointmentService $appointments,
+        private readonly DoctorAvailabilityService $doctorAvailability,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -233,6 +240,103 @@ class AppointmentController extends Controller
         ]);
     }
 
+    /**
+     * UC8 - Danh sach lich hen `cho_phan_cong_bac_si` (dispatch queue).
+     */
+    public function pendingForAssignment(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'branch_id' => ['nullable', 'string', 'max:64'],
+            'q' => ['nullable', 'string', 'max:191'],
+            'date' => ['nullable', 'date'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $paginator = $this->appointments->pendingForAssignment($filters);
+
+        return response()->json([
+            'data' => collect($paginator->items())
+                ->map(fn (Appointment $a) => $this->transform($a, withHistory: false))
+                ->all(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * UC8 - Danh sach bac si ung vien cho 1 lich hen, kem fit_score + blockers.
+     */
+    public function availableDoctors(int $id): JsonResponse
+    {
+        $appointment = $this->appointments->findAppointment($id);
+        $result = $this->doctorAvailability->candidatesFor($appointment);
+
+        return response()->json($result);
+    }
+
+    /**
+     * UC8 - Phan cong bac si (status `cho_phan_cong_bac_si` -> `da_phan_cong_bac_si`).
+     */
+    public function assignDoctor(AssignDoctorRequest $request, int $id): JsonResponse
+    {
+        $appointment = $this->appointments->findAppointment($id);
+        $updated = $this->appointments->assignDoctor(
+            $appointment,
+            (int) $request->input('doctor_id'),
+            $request->validated(),
+            $request->user(),
+        );
+
+        return response()->json([
+            'data' => $this->transform($updated, withHistory: true),
+            'message' => 'Da phan cong bac si.',
+        ]);
+    }
+
+    /**
+     * UC8 - Doi bac si (giu status, ghi history reassigned).
+     */
+    public function reassignDoctor(ReassignDoctorRequest $request, int $id): JsonResponse
+    {
+        $appointment = $this->appointments->findAppointment($id);
+        $updated = $this->appointments->reassignDoctor(
+            $appointment,
+            (int) $request->input('doctor_id'),
+            $request->validated(),
+            $request->user(),
+        );
+
+        return response()->json([
+            'data' => $this->transform($updated, withHistory: true),
+            'message' => 'Da doi bac si.',
+        ]);
+    }
+
+    /**
+     * UC8 - Huy phan cong (status quay ve `cho_phan_cong_bac_si`).
+     */
+    public function unassignDoctor(UnassignDoctorRequest $request, int $id): JsonResponse
+    {
+        $appointment = $this->appointments->findAppointment($id);
+        $updated = $this->appointments->unassignDoctor(
+            $appointment,
+            $request->validated(),
+            $request->user(),
+        );
+
+        return response()->json([
+            'data' => $this->transform($updated, withHistory: true),
+            'message' => 'Da huy phan cong bac si.',
+        ]);
+    }
+
     protected function transform(Appointment $a, bool $withHistory = false): array
     {
         $a->loadMissing(['patient', 'assignedDoctor:id,name,email', 'creator:id,name', 'updater:id,name', 'bookingRequest:id,code,status,source']);
@@ -295,6 +399,9 @@ class AppointmentController extends Controller
                 'edit' => $a->canBeEdited(),
                 'reschedule' => $a->canBeRescheduled(),
                 'cancel' => $a->canBeCancelled(),
+                'assign' => $a->canAssignDoctor(),
+                'reassign' => $a->canReassignDoctor(),
+                'unassign' => $a->canUnassignDoctor(),
             ],
         ];
     }

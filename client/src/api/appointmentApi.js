@@ -85,6 +85,50 @@ export const appointmentApi = {
     const response = await axiosClient.post(`/appointments/${id}/cancel`, { reason });
     return response.data;
   },
+
+  /**
+   * UC8 - Danh sach lich hen `cho_phan_cong_bac_si` cho dispatch queue.
+   * @param {object} params - { branch_id, q, date, date_from, date_to, page, per_page }
+   */
+  pendingForAssignment: async (params = {}) => {
+    const response = await axiosClient.get('/appointments/pending-assignment', { params });
+    return response.data;
+  },
+
+  /**
+   * UC8 - Bac si ung vien cho 1 lich hen (kem fit_score + blockers).
+   */
+  availableDoctors: async (id) => {
+    const response = await axiosClient.get(`/appointments/${id}/available-doctors`);
+    return response.data;
+  },
+
+  /**
+   * UC8 - Phan cong bac si (status cho_phan_cong -> da_phan_cong).
+   * @param {object} payload - { doctor_id, note? }
+   */
+  assignDoctor: async (id, payload) => {
+    const response = await axiosClient.post(`/appointments/${id}/assign-doctor`, payload);
+    return response.data;
+  },
+
+  /**
+   * UC8 - Doi bac si (giu status, ghi history reassigned).
+   * @param {object} payload - { doctor_id, reason, note? }
+   */
+  reassignDoctor: async (id, payload) => {
+    const response = await axiosClient.post(`/appointments/${id}/reassign-doctor`, payload);
+    return response.data;
+  },
+
+  /**
+   * UC8 - Huy phan cong (status -> cho_phan_cong).
+   * @param {object} payload - { reason, note? }
+   */
+  unassignDoctor: async (id, payload) => {
+    const response = await axiosClient.post(`/appointments/${id}/unassign-doctor`, payload);
+    return response.data;
+  },
 };
 
 export default appointmentApi;

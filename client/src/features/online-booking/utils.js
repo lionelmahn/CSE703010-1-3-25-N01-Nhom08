@@ -46,8 +46,8 @@ export const daysFromToday = (isoDate) => {
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-export const findTimeSlot = (slotId) =>
-  TIME_SLOTS.find((slot) => slot.id === slotId) || null;
+export const findTimeSlot = (slotId, timeSlots = TIME_SLOTS) =>
+  timeSlots.find((slot) => slot.id === slotId) || null;
 
 /**
  * Trim + loại bỏ các pattern script/HTML thường gặp để giảm rủi ro XSS

@@ -80,6 +80,32 @@ class Appointment extends Model
         self::STATUS_CONFIRMED,
     ];
 
+    /**
+     * UC8 - Trang thai cho phep phan cong bac si (SR1).
+     */
+    public const ASSIGN_ALLOWED_STATUSES = [
+        self::STATUS_WAITING_DOCTOR_ASSIGNMENT,
+    ];
+
+    /**
+     * UC8 - Trang thai cho phep doi bac si (AC9). Voi `da_check_in`,
+     * service guard yeu cau them role admin (VR12 / SEC3).
+     */
+    public const REASSIGN_ALLOWED_STATUSES = [
+        self::STATUS_DOCTOR_ASSIGNED,
+        self::STATUS_CONFIRMED,
+        self::STATUS_CHECKED_IN,
+    ];
+
+    /**
+     * UC8 - Trang thai cho phep huy phan cong (AC12). Khong cho voi
+     * `da_check_in` tro di (VR11).
+     */
+    public const UNASSIGN_ALLOWED_STATUSES = [
+        self::STATUS_DOCTOR_ASSIGNED,
+        self::STATUS_CONFIRMED,
+    ];
+
     public const SOURCE_ONLINE = 'online';
     public const SOURCE_WALK_IN = 'tai_quay';
     public const SOURCE_PHONE = 'dien_thoai';
@@ -179,5 +205,22 @@ class Appointment extends Model
     public function canBeEdited(): bool
     {
         return in_array($this->status, self::EDIT_ALLOWED_STATUSES, true);
+    }
+
+    public function canAssignDoctor(): bool
+    {
+        return in_array($this->status, self::ASSIGN_ALLOWED_STATUSES, true);
+    }
+
+    public function canReassignDoctor(): bool
+    {
+        return in_array($this->status, self::REASSIGN_ALLOWED_STATUSES, true)
+            && $this->assigned_doctor_id !== null;
+    }
+
+    public function canUnassignDoctor(): bool
+    {
+        return in_array($this->status, self::UNASSIGN_ALLOWED_STATUSES, true)
+            && $this->assigned_doctor_id !== null;
     }
 }
