@@ -2,12 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, CalendarClock, Check, Loader2, Plus, X } from 'lucide-react';
 
 import {
-  BOOKING_SERVICES,
-  CLINIC_BRANCHES,
-  TIME_SLOTS,
-} from '@/features/online-booking/data';
-
-import {
   PROCESSING_TABS,
   PROCESSABLE_STATUSES,
   REJECT_REASON_PRESETS,
@@ -19,6 +13,7 @@ import {
   validateProposePayload,
   validateRejectPayload,
 } from '../validation';
+import useOnlineBookingCatalogs from '../hooks/useOnlineBookingCatalogs';
 
 const TabBtn = ({ active, onClick, children, disabled }) => (
   <button
@@ -31,12 +26,13 @@ const TabBtn = ({ active, onClick, children, disabled }) => (
   </button>
 );
 
-const ConfirmForm = ({ request, onSubmit, submitting }) => {
+const ConfirmForm = ({ request, onSubmit, submitting, catalogs }) => {
+  const { services, branches, timeSlots } = catalogs;
   const [form, setForm] = useState({
     date: request.preferred_date || '',
     time_slot_id: request.preferred_time_slot_id || '',
-    service_id: request.service_ids?.[0] || '',
-    branch_id: request.branch_id || '',
+    service_id: request.service_ids?.[0] ? String(request.service_ids[0]) : '',
+    branch_id: request.branch_id ? String(request.branch_id) : '',
   });
   const [errors, setErrors] = useState({});
 
@@ -45,10 +41,10 @@ const ConfirmForm = ({ request, onSubmit, submitting }) => {
     setForm({
       date: request.preferred_date || '',
       time_slot_id: request.preferred_time_slot_id || '',
-      service_id: request.service_ids?.[0] || '',
-      branch_id: request.branch_id || '',
+      service_id: request.service_ids?.[0] ? String(request.service_ids[0]) : '',
+      branch_id: request.branch_id ? String(request.branch_id) : '',
     });
-     
+
     setErrors({});
   }, [request.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -59,7 +55,7 @@ const ConfirmForm = ({ request, onSubmit, submitting }) => {
     const v = validateConfirmPayload(request, {
       ...form,
       service_ids: form.service_id ? [form.service_id] : [],
-    });
+    }, catalogs);
     if (!v.ok) {
       setErrors(v.errors);
       return;
@@ -112,7 +108,7 @@ const ConfirmForm = ({ request, onSubmit, submitting }) => {
             disabled={isDuplicated}
           >
             <option value="">-- Chon khung gio --</option>
-            {TIME_SLOTS.filter((t) => !t.break).map((t) => (
+            {timeSlots.filter((t) => !t.break).map((t) => (
               <option key={t.id} value={t.id}>{t.label.replace(/\s*\(.*?\)\s*$/, '')}</option>
             ))}
           </select>
@@ -127,7 +123,7 @@ const ConfirmForm = ({ request, onSubmit, submitting }) => {
             disabled={isDuplicated}
           >
             <option value="">-- Chon dich vu --</option>
-            {BOOKING_SERVICES.filter((s) => s.active !== false).map((s) => (
+            {services.filter((s) => s.active !== false).map((s) => (
               <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
@@ -142,7 +138,7 @@ const ConfirmForm = ({ request, onSubmit, submitting }) => {
             disabled={isDuplicated}
           >
             <option value="">-- Chon chi nhanh --</option>
-            {CLINIC_BRANCHES.filter((b) => b.active !== false).map((b) => (
+            {branches.filter((b) => b.active !== false).map((b) => (
               <option key={b.id} value={b.id}>{b.label}</option>
             ))}
           </select>
@@ -169,7 +165,8 @@ const ConfirmForm = ({ request, onSubmit, submitting }) => {
   );
 };
 
-const ProposeForm = ({ request, onSubmit, submitting }) => {
+const ProposeForm = ({ request, onSubmit, submitting, catalogs }) => {
+  const { timeSlots } = catalogs;
   const initial = useMemo(() => (
     request.proposed_slots && request.proposed_slots.length
       ? request.proposed_slots
@@ -183,7 +180,7 @@ const ProposeForm = ({ request, onSubmit, submitting }) => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSlots(initial);
-     
+
     setErrors({});
   }, [initial]);
 
@@ -196,7 +193,7 @@ const ProposeForm = ({ request, onSubmit, submitting }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-    const v = validateProposePayload(request, { slots, reason });
+    const v = validateProposePayload(request, { slots, reason }, catalogs);
     if (!v.ok) {
       setErrors(v.errors);
       return;
@@ -250,7 +247,7 @@ const ProposeForm = ({ request, onSubmit, submitting }) => {
                 className="w-full border rounded px-2 py-1.5 focus:outline-none bg-white"
               >
                 <option value="">-- Chon --</option>
-                {TIME_SLOTS.filter((t) => !t.break).map((t) => (
+                {timeSlots.filter((t) => !t.break).map((t) => (
                   <option key={t.id} value={t.id}>{t.label.replace(/\s*\(.*?\)\s*$/, '')}</option>
                 ))}
               </select>
@@ -296,9 +293,9 @@ const RejectForm = ({ request, onSubmit, submitting }) => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreset(REJECT_REASON_PRESETS[0]);
-     
+
     setReason(REJECT_REASON_PRESETS[0]);
-     
+
     setErrors({});
   }, [request.id]);
 
@@ -378,6 +375,7 @@ const ProcessingPanel = ({
   submitting,
 }) => {
   const [tab, setTab] = useState(PROCESSING_TABS.CONFIRM);
+  const catalogs = useOnlineBookingCatalogs();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -439,10 +437,10 @@ const ProcessingPanel = ({
       )}
 
       {isProcessable && tab === PROCESSING_TABS.CONFIRM && (
-        <ConfirmForm request={request} onSubmit={onConfirm} submitting={submitting} />
+        <ConfirmForm request={request} onSubmit={onConfirm} submitting={submitting} catalogs={catalogs} />
       )}
       {isProcessable && tab === PROCESSING_TABS.PROPOSE && (
-        <ProposeForm request={request} onSubmit={onPropose} submitting={submitting} />
+        <ProposeForm request={request} onSubmit={onPropose} submitting={submitting} catalogs={catalogs} />
       )}
       {isProcessable && tab === PROCESSING_TABS.REJECT && (
         <RejectForm request={request} onSubmit={onReject} submitting={submitting} />

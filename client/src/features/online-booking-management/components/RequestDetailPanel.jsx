@@ -15,6 +15,7 @@ import {
   getTimeSlotLabel,
   sanitizeInternalNote,
 } from '../utils';
+import useOnlineBookingCatalogs from '../hooks/useOnlineBookingCatalogs';
 
 const InfoRow = ({ label, value, valueClassName = '' }) => (
   <div className="grid grid-cols-[110px_1fr] items-start gap-2">
@@ -30,6 +31,7 @@ const RequestDetailPanel = ({
   onResendEmail,
   submitting,
 }) => {
+  const catalogs = useOnlineBookingCatalogs();
   const [internalNote, setInternalNote] = useState('');
   const [savedNote, setSavedNote] = useState('');
 
@@ -37,7 +39,7 @@ const RequestDetailPanel = ({
     if (!request) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setInternalNote(request.internal_note || '');
-     
+
     setSavedNote(request.internal_note || '');
   }, [request?.id, request?.internal_note]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -112,10 +114,10 @@ const RequestDetailPanel = ({
             <InfoRow label="Ho va ten" value={<span className="font-medium">{request.name}</span>} />
             <InfoRow label="So dien thoai" value={<span className="font-medium">{formatPhone(request.phone)}</span>} />
             <InfoRow label="Email" value={<span className="font-medium">{request.email}</span>} />
-            <InfoRow label="Dich vu quan tam" value={getServiceLabels(request.service_ids)} />
-            <InfoRow label="Chi nhanh" value={getBranchLabel(request.branch_id)} />
+            <InfoRow label="Dich vu quan tam" value={getServiceLabels(request.service_ids, catalogs.services)} />
+            <InfoRow label="Chi nhanh" value={getBranchLabel(request.branch_id, catalogs.branches)} />
             <InfoRow label="Ngay mong muon" value={<span className="font-medium">{formatDateOnly(request.preferred_date)}</span>} />
-            <InfoRow label="Khung gio mong muon" value={<span className="font-medium">{getTimeSlotLabel(request.preferred_time_slot_id)}</span>} />
+            <InfoRow label="Khung gio mong muon" value={<span className="font-medium">{getTimeSlotLabel(request.preferred_time_slot_id, catalogs.timeSlots)}</span>} />
             <InfoRow label="Ghi chu" value={<span className="leading-tight">{request.customer_note}</span>} />
             <InfoRow label="Nguon tiep nhan" value="Landing page" />
             <InfoRow label="Ngay gui yeu cau" value={formatDateTime(request.submitted_at)} />

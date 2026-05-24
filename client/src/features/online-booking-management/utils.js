@@ -56,26 +56,36 @@ export const formatPhone = (phone) => {
  * Resolve label tu seed config. Cho phep request co them id la chuoi tuy y
  * (vi du khach hang tu nhap "other") - fallback ve id de UI khong bi vo.
  */
-export const getServiceLabel = (id) => {
+const matchesCatalogRef = (item, ref) => {
+  if (item == null || ref == null) return false;
+  const key = String(ref);
+  return (
+    String(item.id) === key
+    || String(item.code) === key
+    || String(item.service_code) === key
+  );
+};
+
+export const getServiceLabel = (id, services = BOOKING_SERVICES) => {
   if (!id) return '-';
-  const s = BOOKING_SERVICES.find((x) => x.id === id);
+  const s = services.find((x) => matchesCatalogRef(x, id));
   return s ? s.label : id;
 };
 
-export const getServiceLabels = (ids = []) => {
+export const getServiceLabels = (ids = [], services = BOOKING_SERVICES) => {
   if (!Array.isArray(ids) || ids.length === 0) return '-';
-  return ids.map(getServiceLabel).join(', ');
+  return ids.map((id) => getServiceLabel(id, services)).join(', ');
 };
 
-export const getBranchLabel = (id) => {
+export const getBranchLabel = (id, branches = CLINIC_BRANCHES) => {
   if (!id) return '-';
-  const b = CLINIC_BRANCHES.find((x) => x.id === id);
+  const b = branches.find((x) => matchesCatalogRef(x, id));
   return b ? b.label : id;
 };
 
-export const getTimeSlotLabel = (id) => {
+export const getTimeSlotLabel = (id, timeSlots = TIME_SLOTS) => {
   if (!id) return '-';
-  const t = TIME_SLOTS.find((x) => x.id === id);
+  const t = timeSlots.find((x) => matchesCatalogRef(x, id));
   if (!t) return id;
   // Bo phan "(Nghi trua)" trong UI cho gon.
   return t.label.replace(/\s*\(.*?\)\s*$/, '');

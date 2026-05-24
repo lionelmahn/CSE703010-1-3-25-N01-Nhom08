@@ -20,6 +20,15 @@ import {
 
 const ok = () => ({ ok: true, errors: {} });
 const fail = (errors) => ({ ok: false, errors });
+const matchesCatalogRef = (item, ref) => {
+  if (item == null || ref == null) return false;
+  const key = String(ref);
+  return (
+    String(item.id) === key
+    || String(item.code) === key
+    || String(item.service_code) === key
+  );
+};
 
 export const firstError = (errors) => Object.values(errors || {})[0] || '';
 
@@ -44,8 +53,11 @@ export const canProcessRequest = (request, { isAdmin = false } = {}) => {
 // VR3 + VR4: ngay/gio hen hop le.
 // VR11 + VR12: dich vu + chi nhanh con active.
 // VR8: khong tao thua appointment.
-export const validateConfirmPayload = (request, payload) => {
+export const validateConfirmPayload = (request, payload, catalogs = {}) => {
   const errors = {};
+  const services = catalogs.services || BOOKING_SERVICES;
+  const branches = catalogs.branches || CLINIC_BRANCHES;
+  const timeSlots = catalogs.timeSlots || TIME_SLOTS;
 
   if (!request) {
     errors.request = 'Khong tim thay yeu cau';
@@ -72,18 +84,22 @@ export const validateConfirmPayload = (request, payload) => {
     }
   }
 
-  if (!payload?.time_slot_id || !TIME_SLOTS.some((t) => t.id === payload.time_slot_id && !t.break)) {
+  if (!payload?.time_slot_id || !timeSlots.some((t) => matchesCatalogRef(t, payload.time_slot_id) && !t.break)) {
     errors.time_slot = 'Khung gio khong hop le hoac la khung nghi trua'; // VR4
   }
 
-  const service = BOOKING_SERVICES.find((s) => s.id === payload?.service_id || (Array.isArray(payload?.service_ids) && payload.service_ids.includes(s.id)));
+  const pickedServiceIds = Array.isArray(payload?.service_ids) ? payload.service_ids : [];
+  const service = services.find((s) => (
+    matchesCatalogRef(s, payload?.service_id)
+    || pickedServiceIds.some((id) => matchesCatalogRef(s, id))
+  ));
   if (!service) {
     errors.service = 'Vui long chon dich vu';
   } else if (!service.active) {
     errors.service = `Dich vu "${service.label}" da tam ngung tiep nhan`; // VR11
   }
 
-  const branch = CLINIC_BRANCHES.find((b) => b.id === payload?.branch_id);
+  const branch = branches.find((b) => matchesCatalogRef(b, payload?.branch_id));
   if (!branch) {
     errors.branch = 'Vui long chon chi nhanh';
   } else if (!branch.active) {
@@ -94,8 +110,9 @@ export const validateConfirmPayload = (request, payload) => {
 };
 
 // VR6: phai co it nhat 1 khung gio thay the hop le.
-export const validateProposePayload = (request, payload) => {
+export const validateProposePayload = (request, payload, catalogs = {}) => {
   const errors = {};
+  const timeSlots = catalogs.timeSlots || TIME_SLOTS;
   if (!request) {
     errors.request = 'Khong tim thay yeu cau';
     return fail(errors);
@@ -118,7 +135,7 @@ export const validateProposePayload = (request, payload) => {
     if (Number.isNaN(d.getTime()) || d.getTime() < today.getTime()) {
       errors[`slot_${idx}_date`] = `Khung ${idx + 1}: ngay khong hop le`;
     }
-    if (!slot?.time_slot_id || !TIME_SLOTS.some((t) => t.id === slot.time_slot_id && !t.break)) {
+    if (!slot?.time_slot_id || !timeSlots.some((t) => matchesCatalogRef(t, slot.time_slot_id) && !t.break)) {
       errors[`slot_${idx}_time`] = `Khung ${idx + 1}: chua chon khung gio hop le`;
     }
   });
