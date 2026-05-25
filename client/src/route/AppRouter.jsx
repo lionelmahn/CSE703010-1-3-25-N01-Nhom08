@@ -36,6 +36,8 @@ import MyProfessionalProfile from '@/page/MyProfessionalProfile';
 import WorkScheduleManagement from '@/page/WorkScheduleManagement';
 import MyWorkSchedule from '@/page/MyWorkSchedule';
 import OnlineBookingManagement from '@/page/OnlineBookingManagement';
+import Notifications from '@/page/Notifications';
+import NotificationTemplates from '@/page/NotificationTemplates';
 
 const ProtectedRoute = ({ children }) => {
   const { isLoggedIn } = useAuth();
@@ -99,6 +101,8 @@ const AppRouter = () => {
         <Route path="appointments" element={<PermissionRoute permission="appointments.view"><Appointments /></PermissionRoute>} />
         <Route path="doctor-dispatch" element={<PermissionRoute permission="appointments.assign"><DoctorDispatch /></PermissionRoute>} />
         <Route path="online-bookings" element={<PermissionRoute permission="appointments.view"><OnlineBookingManagement /></PermissionRoute>} />
+        <Route path="notifications" element={<PermissionRoute permission="notifications.view"><Notifications /></PermissionRoute>} />
+        <Route path="notification-templates" element={<PermissionRoute permission="notification_templates.view"><NotificationTemplates /></PermissionRoute>} />
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
 
         <Route path="invoices" element={<PermissionRoute permission="finance.view"><InvoiceManagement /></PermissionRoute>} />

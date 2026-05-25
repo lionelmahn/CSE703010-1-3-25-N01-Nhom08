@@ -137,5 +137,41 @@ class PermissionSeeder extends Seeder
         if ($receptionist && ! empty($dispatchIds)) {
             $receptionist->permissions()->syncWithoutDetaching($dispatchIds);
         }
+
+        // UC10 - Quan ly thong bao lich hen. Tach module rieng "notifications"
+        // va "notification_templates" de phan biet rang buoc quyen le tan vs
+        // admin (notifications.cancel + notification_templates.* chi admin).
+        $uc10Slugs = [
+            'notifications.view' => ['name' => 'Xem danh sach thong bao', 'module' => 'notifications'],
+            'notifications.resend' => ['name' => 'Gui lai thong bao that bai', 'module' => 'notifications'],
+            'notifications.send_manual' => ['name' => 'Gui thong bao thu cong', 'module' => 'notifications'],
+            'notifications.cancel' => ['name' => 'Huy thong bao cho gui', 'module' => 'notifications'],
+            'notification_templates.view' => ['name' => 'Xem mau email he thong', 'module' => 'notification_templates'],
+            'notification_templates.update' => ['name' => 'Cap nhat mau email he thong', 'module' => 'notification_templates'],
+        ];
+
+        $uc10AdminIds = [];
+        $uc10ReceptionistIds = [];
+        foreach ($uc10Slugs as $slug => $meta) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $meta['name'], 'module' => $meta['module']]
+            );
+            $uc10AdminIds[] = $permission->id;
+            if (in_array($slug, [
+                'notifications.view',
+                'notifications.resend',
+                'notifications.send_manual',
+            ], true)) {
+                $uc10ReceptionistIds[] = $permission->id;
+            }
+        }
+
+        if ($adminRole) {
+            $adminRole->permissions()->syncWithoutDetaching($uc10AdminIds);
+        }
+        if ($receptionist && ! empty($uc10ReceptionistIds)) {
+            $receptionist->permissions()->syncWithoutDetaching($uc10ReceptionistIds);
+        }
     }
 }

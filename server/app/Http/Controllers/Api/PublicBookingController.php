@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Concerns\TransformsBookingResponses;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OnlineBooking\StoreOnlineBookingRequest;
+use App\Models\AppNotification;
 use App\Models\Branch;
 use App\Models\Service;
+use App\Services\NotificationService;
 use App\Services\OnlineBookingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,8 +23,10 @@ class PublicBookingController extends Controller
 {
     use TransformsBookingResponses;
 
-    public function __construct(private readonly OnlineBookingService $service)
-    {
+    public function __construct(
+        private readonly OnlineBookingService $service,
+        private readonly NotificationService $notifications,
+    ) {
     }
 
     public function store(StoreOnlineBookingRequest $request): JsonResponse
@@ -40,12 +44,24 @@ class PublicBookingController extends Controller
             device: $request->userAgent(),
         );
 
+        $notification = null;
+        // UC10 - transaction nghiep vu da commit trong createFromPublicPayload().
+        // Gui email tiep nhan ngay tai day; loi gui email khong rollback booking.
+        try {
+            $notification = $this->notifications->dispatchForOnlineBooking(
+                AppNotification::TYPE_REQUEST_RECEIVED,
+                $created,
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return response()->json([
             'data' => $this->transformRequest($created),
             'code' => $created->code,
             'status' => $created->status,
             'submitted_at' => $created->submitted_at?->toIso8601String(),
-            'email_sent' => false,
+            'email_sent' => $notification?->status === AppNotification::STATUS_SENT,
             'message' => 'Da tiep nhan yeu cau dat lich.',
         ], 201);
     }
@@ -64,8 +80,7 @@ class PublicBookingController extends Controller
             ->orderBy('name')
             ->get(['id', 'service_code', 'name'])
             ->map(fn ($s) => [
-                'id' => (string) $s->id,
-                'code' => $s->service_code,
+                'id' => $s->service_code ?: (string) $s->id,
                 'label' => $s->name,
                 'active' => true,
             ]);
@@ -80,8 +95,7 @@ class PublicBookingController extends Controller
             ->orderBy('name')
             ->get(['id', 'code', 'name'])
             ->map(fn ($b) => [
-                'id' => (string) $b->id,
-                'code' => $b->code,
+                'id' => $b->code ?: (string) $b->id,
                 'label' => $b->name,
                 'active' => true,
             ]);

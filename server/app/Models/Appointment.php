@@ -175,6 +175,15 @@ class Appointment extends Model
         return $this->hasMany(AppointmentStatusHistory::class)->orderBy('created_at');
     }
 
+    /**
+     * UC10 - Toan bo thong bao (auto + manual) gan voi lich hen nay.
+     */
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class, 'appointment_id')
+            ->orderByDesc('created_at');
+    }
+
     public static function generateCode(): string
     {
         $prefix = 'APT'.now()->format('Y');

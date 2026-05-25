@@ -17,6 +17,7 @@ import {
 } from '../constants';
 import { canCancel, canReschedule } from '../validation';
 import { useAppointmentLookups } from '../hooks/useAppointmentLookups';
+import NotificationHistoryTab from '@/features/notifications/components/NotificationHistoryTab';
 
 const formatDate = (d) => {
   if (!d) return '-';
@@ -164,6 +165,13 @@ const AppointmentDetailDialog = ({
                   ))}
                 </ol>
               )}
+            </section>
+
+            <section className="rounded-xl border border-slate-200 p-3">
+              <h4 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
+                <Mail className="h-3.5 w-3.5" /> Lich su thong bao (UC10)
+              </h4>
+              <NotificationHistoryTab appointmentId={appointment.id} />
             </section>
           </div>
         )}

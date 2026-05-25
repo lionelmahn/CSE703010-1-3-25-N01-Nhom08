@@ -10,13 +10,16 @@ use App\Http\Requests\OnlineBooking\RejectOnlineBookingRequest;
 use App\Mail\AlternativeTimeProposalMail;
 use App\Mail\AppointmentConfirmationMail;
 use App\Mail\RequestRejectionMail;
+use App\Models\AppNotification;
 use App\Models\OnlineBookingRequest;
 use App\Models\Patient;
+use App\Services\NotificationService;
 use App\Services\OnlineBookingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 /**
  * UC6.2 - API noi bo xu ly yeu cau dat lich (le tan + admin).
@@ -29,8 +32,10 @@ class OnlineBookingController extends Controller
 {
     use TransformsBookingResponses;
 
-    public function __construct(private readonly OnlineBookingService $service)
-    {
+    public function __construct(
+        private readonly OnlineBookingService $service,
+        private readonly NotificationService $notifications,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -120,15 +125,8 @@ class OnlineBookingController extends Controller
             $request->user(),
         );
 
-        $updated = $result['request'];
-
-        // VR9 - chi gui email SAU khi commit thanh cong.
-        $this->safeSendMail(
-            request: $updated,
-            mailable: new AppointmentConfirmationMail($updated, $result['appointment']),
-            actor: $request->user(),
-            kind: 'ER-01',
-        );
+        // UC10 - Email da duoc dispatch trong OnlineBookingService voi co che
+        // DB::afterCommit, khong goi safeSendMail truc tiep tai day nua.
 
         return response()->json([
             'data' => $this->transformRequest($this->service->findRequest($id)),
@@ -144,12 +142,7 @@ class OnlineBookingController extends Controller
             $request->user(),
         );
 
-        $this->safeSendMail(
-            request: $updated,
-            mailable: new AlternativeTimeProposalMail($updated, $request->input('proposed_slots'), $request->input('message')),
-            actor: $request->user(),
-            kind: 'ER-02',
-        );
+        // UC10 - Email da duoc dispatch trong OnlineBookingService.
 
         return response()->json([
             'data' => $this->transformRequest($this->service->findRequest($id)),
@@ -164,12 +157,7 @@ class OnlineBookingController extends Controller
             $request->user(),
         );
 
-        $this->safeSendMail(
-            request: $updated,
-            mailable: new RequestRejectionMail($updated, $request->validated()['reason']),
-            actor: $request->user(),
-            kind: 'ER-03',
-        );
+        // UC10 - Email da duoc dispatch trong OnlineBookingService.
 
         return response()->json([
             'data' => $this->transformRequest($this->service->findRequest($id)),
@@ -186,6 +174,10 @@ class OnlineBookingController extends Controller
         return response()->json(['data' => $this->transformRequest($updated)]);
     }
 
+    /**
+     * UC10 - Endpoint chuyen tiep. Sprint sau co the bo, FE moi dung
+     * /api/notifications de gui thu cong. Hien tai map kind -> NotificationService.
+     */
     public function sendEmail(int $id, Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -194,11 +186,43 @@ class OnlineBookingController extends Controller
 
         $bookingRequest = $this->service->findRequest($id);
 
-        $mailable = $this->mailableForKind($data['kind'], $bookingRequest);
+        $type = match ($data['kind']) {
+            'ER-01' => AppNotification::TYPE_APPOINTMENT_CONFIRMATION,
+            'ER-02' => AppNotification::TYPE_ALTERNATIVE_PROPOSED,
+            'ER-03' => AppNotification::TYPE_REQUEST_REJECTED,
+            default => AppNotification::TYPE_APPOINTMENT_CONFIRMATION,
+        };
 
-        $updated = $this->safeSendMail($bookingRequest, $mailable, $request->user(), $data['kind']);
+        try {
+            $this->notifications->dispatchManual($type, $request->user(), [
+                'online_booking_request_id' => $bookingRequest->id,
+                'appointment_id' => $bookingRequest->appointment_id,
+            ]);
+            // Backward-compatible voi UC6.2 hien tai: cap nhat email_status de
+            // UI cu khong vo cot trang thai gui email.
+            $this->service->markEmail(
+                $bookingRequest,
+                $data['kind'],
+                OnlineBookingRequest::EMAIL_STATUS_SENT,
+                $request->user(),
+            );
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::warning('uc6.2.send_email_via_uc10_failed', [
+                'request_id' => $bookingRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->service->markEmail(
+                $bookingRequest,
+                $data['kind'],
+                OnlineBookingRequest::EMAIL_STATUS_FAILED,
+                $request->user(),
+                $e->getMessage(),
+            );
+        }
 
-        return response()->json(['data' => $this->transformRequest($updated)]);
+        return response()->json(['data' => $this->transformRequest($this->service->findRequest($id))]);
     }
 
     public function resendEmail(int $id, Request $request): JsonResponse

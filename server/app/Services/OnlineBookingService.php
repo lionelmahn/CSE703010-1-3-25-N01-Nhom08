@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\AppNotification;
 use App\Models\Appointment;
-use App\Models\Branch;
 use App\Models\OnlineBookingRequest;
 use App\Models\OnlineBookingRequestHistory;
 use App\Models\Patient;
-use App\Models\Service;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -94,17 +94,14 @@ class OnlineBookingService
     public function createFromPublicPayload(array $payload, ?string $ip = null, ?string $device = null): OnlineBookingRequest
     {
         return DB::transaction(function () use ($payload, $ip, $device) {
-            $serviceIds = $this->normalizeServiceIds($payload['service_ids'] ?? []);
-            $branchId = $this->normalizeBranchRef($payload['branch_id'] ?? null);
-
             $request = OnlineBookingRequest::create([
                 'code' => OnlineBookingRequest::generateCode(),
                 'name' => $payload['name'],
                 'phone' => $payload['phone'],
                 'email' => $payload['email'] ?? null,
                 'need' => $payload['need'] ?? null,
-                'service_ids' => $serviceIds,
-                'branch_id' => $branchId,
+                'service_ids' => $payload['service_ids'] ?? [],
+                'branch_id' => $payload['branch_id'] ?? null,
                 'preferred_date' => $payload['preferred_date'] ?? null,
                 'preferred_time_slot' => $payload['preferred_time_slot'] ?? null,
                 'customer_note' => $payload['customer_note'] ?? $payload['note'] ?? null,
@@ -214,22 +211,15 @@ class OnlineBookingService
             ]);
         }
 
-        return DB::transaction(function () use ($request, $payload, $actor) {
-            $serviceIds = array_key_exists('service_ids', $payload)
-                ? $this->normalizeServiceIds($payload['service_ids'] ?? [])
-                : $this->normalizeServiceIds($request->service_ids ?? []);
-            $branchId = array_key_exists('branch_id', $payload)
-                ? $this->normalizeBranchRef($payload['branch_id'])
-                : $this->normalizeBranchRef($request->branch_id);
-
+        $result = DB::transaction(function () use ($request, $payload, $actor) {
             $appointment = Appointment::create([
                 'code' => Appointment::generateCode(),
                 'online_booking_request_id' => $request->id,
                 'patient_id' => $request->patient_id,
                 'appointment_date' => $payload['appointment_date'],
                 'time_slot' => $payload['time_slot'],
-                'service_ids' => $serviceIds,
-                'branch_id' => $branchId,
+                'service_ids' => $payload['service_ids'] ?? $request->service_ids ?? [],
+                'branch_id' => $payload['branch_id'] ?? $request->branch_id,
                 'status' => Appointment::STATUS_WAITING_DOCTOR_ASSIGNMENT,
                 'created_by' => $actor->id,
                 'notes' => $payload['notes'] ?? null,
@@ -256,13 +246,37 @@ class OnlineBookingService
                 'appointment' => $appointment,
             ];
         });
+
+        // UC10 - Sau khi confirm thanh cong: gui appointment_confirmation +
+        // schedule reminder 24h. Khong fail ca flow neu gui email loi (IR8).
+        $this->dispatchNotificationAfterCommit(function (NotificationService $service) use ($result, $actor) {
+            try {
+                $service->dispatchForAppointment(
+                    AppNotification::TYPE_APPOINTMENT_CONFIRMATION,
+                    $result['appointment'],
+                    [
+                        'sent_by_user_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                    ],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+            try {
+                $service->scheduleReminder24h($result['appointment']);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        return $result;
     }
 
     public function proposeAlternative(OnlineBookingRequest $request, array $payload, User $actor): OnlineBookingRequest
     {
         $this->assertProcessable($request);
 
-        return DB::transaction(function () use ($request, $payload, $actor) {
+        $fresh = DB::transaction(function () use ($request, $payload, $actor) {
             $request->status = OnlineBookingRequest::STATUS_PROPOSE_OTHER;
             $request->proposed_slots = $payload['proposed_slots'];
             $request->processed_by = $actor->id;
@@ -277,6 +291,28 @@ class OnlineBookingService
 
             return $request->fresh(['histories']);
         });
+
+        // UC10 - Gui email de xuat khung gio thay the.
+        $this->dispatchNotificationAfterCommit(function (NotificationService $service) use ($fresh, $payload, $actor) {
+            try {
+                $service->dispatchForOnlineBooking(
+                    AppNotification::TYPE_ALTERNATIVE_PROPOSED,
+                    $fresh,
+                    [
+                        'sent_by_user_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                        'context_override' => [
+                            'proposed_slots' => $payload['proposed_slots'] ?? [],
+                            'message_body' => $payload['message'] ?? null,
+                        ],
+                    ],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        return $fresh;
     }
 
     public function rejectRequest(OnlineBookingRequest $request, string $reason, User $actor): OnlineBookingRequest
@@ -287,7 +323,7 @@ class OnlineBookingService
             ]);
         }
 
-        return DB::transaction(function () use ($request, $reason, $actor) {
+        $fresh = DB::transaction(function () use ($request, $reason, $actor) {
             $request->status = OnlineBookingRequest::STATUS_REJECTED;
             $request->reject_reason = $reason;
             $request->processed_by = $actor->id;
@@ -300,6 +336,40 @@ class OnlineBookingService
             ]);
 
             return $request->fresh(['histories']);
+        });
+
+        // UC10 - Gui email tu choi yeu cau (chi reason public, khong leak
+        // internal_note - VR11).
+        $this->dispatchNotificationAfterCommit(function (NotificationService $service) use ($fresh, $reason, $actor) {
+            try {
+                $service->dispatchForOnlineBooking(
+                    AppNotification::TYPE_REQUEST_REJECTED,
+                    $fresh,
+                    [
+                        'sent_by_user_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                        'context_override' => [
+                            'reject_reason' => $reason,
+                        ],
+                    ],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        return $fresh;
+    }
+
+    /**
+     * UC10 - Helper goi callback voi NotificationService sau khi transaction
+     * commit. Resolve service tu container de tranh circular constructor.
+     */
+    private function dispatchNotificationAfterCommit(callable $callback): void
+    {
+        DB::afterCommit(function () use ($callback) {
+            $service = App::make(NotificationService::class);
+            $callback($service);
         });
     }
 
@@ -389,54 +459,5 @@ class OnlineBookingService
                 'status' => 'Yeu cau o trang thai khong cho phep xu ly.',
             ]);
         }
-    }
-
-    private function normalizeBranchRef(?string $branchRef): ?string
-    {
-        if ($branchRef === null || $branchRef === '') {
-            return null;
-        }
-
-        $legacyBranchRefs = [
-            'q1' => 'PK1-HN',
-            'q3' => 'PK2-HCM',
-            'q7' => 'PK3-DN',
-        ];
-        $normalizedRef = $legacyBranchRefs[$branchRef] ?? $branchRef;
-
-        $branch = Branch::query()
-            ->where('id', $normalizedRef)
-            ->orWhere('code', $normalizedRef)
-            ->first(['id']);
-
-        return $branch ? (string) $branch->id : $branchRef;
-    }
-
-    /**
-     * Keep only real service ids. Legacy free-text/mock choices like "other"
-     * do not represent a configured specialty and should not block UC8.
-     *
-     * @return array<int, string>
-     */
-    private function normalizeServiceIds(array $serviceRefs): array
-    {
-        $ids = [];
-        foreach ($serviceRefs as $ref) {
-            if ($ref === null || $ref === '') {
-                continue;
-            }
-
-            $key = (string) $ref;
-            $service = Service::query()
-                ->where('id', $key)
-                ->orWhere('service_code', $key)
-                ->first(['id']);
-
-            if ($service) {
-                $ids[] = (string) $service->id;
-            }
-        }
-
-        return array_values(array_unique($ids));
     }
 }

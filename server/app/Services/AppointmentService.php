@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppNotification;
 use App\Models\Appointment;
 use App\Models\AppointmentStatusHistory;
 use App\Models\Branch;
@@ -9,6 +10,7 @@ use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -151,7 +153,7 @@ class AppointmentService
             timeSlot: $payload['time_slot'],
         );
 
-        return DB::transaction(function () use ($payload, $actor) {
+        $appointment = DB::transaction(function () use ($payload, $actor) {
             $appointment = Appointment::create([
                 'code' => Appointment::generateCode(),
                 'patient_id' => $payload['patient_id'],
@@ -182,6 +184,29 @@ class AppointmentService
 
             return $this->findAppointment($appointment->id);
         });
+
+        // UC10 - Gui email xac nhan + lap lich nhac 24h sau khi commit.
+        $this->dispatchNotificationAfterCommit(function (NotificationService $service) use ($appointment, $actor) {
+            try {
+                $service->dispatchForAppointment(
+                    AppNotification::TYPE_APPOINTMENT_CONFIRMATION,
+                    $appointment,
+                    [
+                        'sent_by_user_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                    ],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+            try {
+                $service->scheduleReminder24h($appointment);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        return $appointment;
     }
 
     /**
@@ -261,7 +286,7 @@ class AppointmentService
             excludeAppointmentId: $appointment->id,
         );
 
-        return DB::transaction(function () use ($appointment, $payload, $actor, $branchId) {
+        [$fresh, $oldDate, $oldSlot] = DB::transaction(function () use ($appointment, $payload, $actor, $branchId) {
             $oldDate = $appointment->appointment_date?->toDateString();
             $oldSlot = $appointment->time_slot;
 
@@ -290,8 +315,35 @@ class AppointmentService
                 ],
             );
 
-            return $this->findAppointment($appointment->id);
+            return [$this->findAppointment($appointment->id), $oldDate, $oldSlot];
         });
+
+        // UC10 - Gui email doi lich + update/cancel reminder pending theo rule 24h.
+        $this->dispatchNotificationAfterCommit(function (NotificationService $service) use ($fresh, $oldDate, $oldSlot, $actor) {
+            try {
+                $service->dispatchForAppointment(
+                    AppNotification::TYPE_APPOINTMENT_RESCHEDULED,
+                    $fresh,
+                    [
+                        'sent_by_user_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                        'context_override' => [
+                            'old_appointment_date' => $oldDate ? Carbon::parse($oldDate)->format('d/m/Y') : null,
+                            'old_time_slot' => $oldSlot,
+                        ],
+                    ],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+            try {
+                $service->rescheduleReminders($fresh, null, $actor);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        return $fresh;
     }
 
     /**
@@ -317,7 +369,7 @@ class AppointmentService
             ]);
         }
 
-        return DB::transaction(function () use ($appointment, $reason, $actor) {
+        $fresh = DB::transaction(function () use ($appointment, $reason, $actor) {
             $previousStatus = $appointment->status;
 
             $appointment->fill([
@@ -337,6 +389,44 @@ class AppointmentService
             );
 
             return $this->findAppointment($appointment->id);
+        });
+
+        // UC10 - Gui email huy lich + cancel reminder pending.
+        $this->dispatchNotificationAfterCommit(function (NotificationService $service) use ($fresh, $reason, $actor) {
+            try {
+                $service->dispatchForAppointment(
+                    AppNotification::TYPE_APPOINTMENT_CANCELLED,
+                    $fresh,
+                    [
+                        'sent_by_user_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                        'context_override' => [
+                            'cancel_reason' => $reason,
+                        ],
+                    ],
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+            try {
+                $service->cancelPendingReminders($fresh, $actor);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        return $fresh;
+    }
+
+    /**
+     * UC10 - Helper goi callback voi NotificationService sau khi transaction
+     * commit. Resolve service tu container de tranh circular constructor.
+     */
+    private function dispatchNotificationAfterCommit(callable $callback): void
+    {
+        DB::afterCommit(function () use ($callback) {
+            $service = App::make(NotificationService::class);
+            $callback($service);
         });
     }
 

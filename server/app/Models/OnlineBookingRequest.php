@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * UC6.1 + UC6.2 - Yeu cau dat lich online tu landing page.
@@ -88,6 +89,15 @@ class OnlineBookingRequest extends Model
     {
         return $this->hasMany(OnlineBookingRequestHistory::class, 'request_id')
             ->orderBy('created_at');
+    }
+
+    /**
+     * UC10 - Toan bo thong bao gui cho yeu cau dat lich nay (tat ca giai doan).
+     */
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class, 'online_booking_request_id')
+            ->orderByDesc('created_at');
     }
 
     /**

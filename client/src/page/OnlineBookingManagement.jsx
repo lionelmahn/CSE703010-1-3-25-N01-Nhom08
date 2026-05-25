@@ -7,6 +7,7 @@ import RequestDetailPanel from '@/features/online-booking-management/components/
 import PatientInfoPanel from '@/features/online-booking-management/components/PatientInfoPanel';
 import ProcessingPanel from '@/features/online-booking-management/components/ProcessingPanel';
 import RelatedInfoPanel from '@/features/online-booking-management/components/RelatedInfoPanel';
+import NotificationHistoryTab from '@/features/notifications/components/NotificationHistoryTab';
 
 import { useOnlineBookingRequests } from '@/features/online-booking-management/hooks/useOnlineBookingRequests';
 import { useOnlineBookingRequestDetail } from '@/features/online-booking-management/hooks/useOnlineBookingRequestDetail';
@@ -49,7 +50,7 @@ const OnlineBookingManagement = () => {
       setSelectedId(list.items[0].id);
     } else if (selectedId && !list.items.find((it) => it.id === selectedId)) {
       // Item bi loai khoi list do filter; clear chon.
-       
+
       setSelectedId(list.items[0]?.id || null);
     }
   }, [list.items, selectedId]);
@@ -265,6 +266,13 @@ const OnlineBookingManagement = () => {
             onResendEmail={handleResendEmail}
             submitting={detail.submitting}
           />
+        </div>
+      )}
+
+      {detail.request && (
+        <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <div className="mb-2 text-sm font-semibold text-gray-700">Lich su thong bao (UC10)</div>
+          <NotificationHistoryTab onlineBookingRequestId={detail.request.id} />
         </div>
       )}
 

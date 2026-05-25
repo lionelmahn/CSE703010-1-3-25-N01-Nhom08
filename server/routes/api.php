@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationTemplateController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MyProfessionalProfileController;
 use App\Http\Controllers\Api\MyWorkScheduleController;
@@ -282,5 +284,32 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/patients/{id}/deactivate', [PatientController::class, 'deactivate'])->whereNumber('id');
         Route::post('/patients/{id}/reactivate', [PatientController::class, 'reactivate'])->whereNumber('id');
         Route::post('/patients/merge', [PatientController::class, 'merge']);
+    });
+
+    // UC10 - Quan ly thong bao lich hen.
+    Route::middleware('permission:notifications.view')->group(function () {
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/counts', [NotificationController::class, 'counts']);
+        Route::get('/notifications/{id}', [NotificationController::class, 'show'])->whereNumber('id');
+    });
+    Route::middleware('permission:notifications.resend')->group(function () {
+        Route::post('/notifications/{id}/resend', [NotificationController::class, 'resend'])->whereNumber('id');
+    });
+    Route::middleware('permission:notifications.send_manual')->group(function () {
+        Route::post('/notifications', [NotificationController::class, 'store']);
+    });
+    Route::middleware('permission:notifications.cancel')->group(function () {
+        Route::post('/notifications/{id}/cancel', [NotificationController::class, 'cancel'])->whereNumber('id');
+    });
+
+    // UC10 - Mau email he thong (admin).
+    Route::middleware('permission:notification_templates.view')->group(function () {
+        Route::get('/notification-templates', [NotificationTemplateController::class, 'index']);
+        Route::get('/notification-templates/{id}', [NotificationTemplateController::class, 'show'])->whereNumber('id');
+        Route::post('/notification-templates/{id}/preview', [NotificationTemplateController::class, 'preview'])->whereNumber('id');
+    });
+    Route::middleware('permission:notification_templates.update')->group(function () {
+        Route::put('/notification-templates/{id}', [NotificationTemplateController::class, 'update'])->whereNumber('id');
+        Route::patch('/notification-templates/{id}/toggle', [NotificationTemplateController::class, 'toggle'])->whereNumber('id');
     });
 });

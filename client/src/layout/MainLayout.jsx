@@ -53,6 +53,8 @@ const MainLayout = () => {
     { icon: <Calendar size={20} />, label: 'Lich hen phong kham', path: '/appointments', roles: ['admin', 'bac_si', 'le_tan'], permission: 'appointments.view' },
     { icon: <Stethoscope size={20} />, label: 'Dieu phoi bac si', path: '/doctor-dispatch', roles: ['admin', 'le_tan'], permission: 'appointments.assign' },
     { icon: <Inbox size={20} />, label: 'Yeu cau dat lich online', path: '/online-bookings', roles: ['admin', 'le_tan'], permission: 'appointments.view', badge: 'pending_online_bookings' },
+    { icon: <Bell size={20} />, label: 'Thong bao lich hen', path: '/notifications', roles: ['admin', 'le_tan'], permission: 'notifications.view' },
+    { icon: <FileText size={20} />, label: 'Mau email', path: '/notification-templates', roles: ['admin'], permission: 'notification_templates.view' },
     { icon: <ClipboardList size={20} />, label: 'Quan ly benh an', path: '/medical-records', roles: ['admin', 'bac_si'], permission: 'dental_records.view' },
     { icon: <FileText size={20} />, label: 'Quan ly hoa don', path: '/invoices', roles: ['admin', 'ke_toan'], permission: 'finance.view' },
     { icon: <TrendingUp size={20} />, label: 'Bao cao doanh thu', path: '/revenue', roles: ['admin', 'ke_toan'], permission: 'reports.view' },
