@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorController;
+use App\Http\Controllers\Api\ExaminationController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationTemplateController;
 use App\Http\Controllers\Api\LeaveRequestController;
@@ -300,6 +301,37 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/patients/{id}/deactivate', [PatientController::class, 'deactivate'])->whereNumber('id');
         Route::post('/patients/{id}/reactivate', [PatientController::class, 'reactivate'])->whereNumber('id');
         Route::post('/patients/merge', [PatientController::class, 'merge']);
+    });
+
+    // UC12 - Quan ly ho so benh an.
+    Route::middleware('permission:dental_records.view')->group(function () {
+        Route::get('/medical-records/worklist', [ExaminationController::class, 'worklist']);
+        Route::get('/examinations/options', [ExaminationController::class, 'options']);
+        Route::get('/examinations/options/services', [ExaminationController::class, 'serviceCatalog']);
+        Route::get('/examinations/options/tooth-statuses', [ExaminationController::class, 'toothStatuses']);
+        Route::get('/examinations/{id}', [ExaminationController::class, 'show'])->whereNumber('id');
+        Route::get('/examinations/{id}/histories', [ExaminationController::class, 'histories'])->whereNumber('id');
+        Route::get('/examinations/{id}/tooth-chart', [ExaminationController::class, 'toothChart'])->whereNumber('id');
+        Route::get('/patients/{id}/examinations', [ExaminationController::class, 'patientExaminations'])->whereNumber('id');
+    });
+    Route::middleware('permission:dental_records.create')->group(function () {
+        Route::post('/examinations/start', [ExaminationController::class, 'start']);
+    });
+    Route::middleware('permission:dental_records.edit')->group(function () {
+        Route::patch('/examinations/{id}', [ExaminationController::class, 'update'])->whereNumber('id');
+        Route::post('/examinations/{id}/save-draft', [ExaminationController::class, 'saveDraft'])->whereNumber('id');
+        Route::post('/examinations/{id}/complete', [ExaminationController::class, 'complete'])->whereNumber('id');
+        Route::post('/examinations/{id}/recall', [ExaminationController::class, 'recall'])->whereNumber('id');
+        Route::post('/examinations/{id}/services', [ExaminationController::class, 'storeServiceItem'])->whereNumber('id');
+        Route::patch('/examinations/{id}/services/{itemId}', [ExaminationController::class, 'updateServiceItem'])->whereNumber('id')->whereNumber('itemId');
+        Route::delete('/examinations/{id}/services/{itemId}', [ExaminationController::class, 'destroyServiceItem'])->whereNumber('id')->whereNumber('itemId');
+        Route::put('/examinations/{id}/tooth-chart', [ExaminationController::class, 'upsertToothChart'])->whereNumber('id');
+    });
+    Route::middleware('permission:dental_records.lock')->group(function () {
+        Route::post('/examinations/{id}/lock', [ExaminationController::class, 'lock'])->whereNumber('id');
+    });
+    Route::middleware('permission:dental_records.unlock')->group(function () {
+        Route::post('/examinations/{id}/unlock', [ExaminationController::class, 'unlock'])->whereNumber('id');
     });
 
     // UC10 - Quan ly thong bao lich hen.

@@ -28,6 +28,7 @@ import PatientList from '@/page/PatientList';
 import Appointments from '@/page/Appointments';
 import DoctorDispatch from '@/page/DoctorDispatch';
 import MedicalRecords from '@/page/MedicalRecords';
+import MedicalRecordsWorkspace from '@/page/MedicalRecordsWorkspace';
 import InvoiceManagement from '@/page/InvoiceManagement';
 import RevenueReport from '@/page/RevenueReport';
 import MyAppointments from '@/page/MyAppointments';
@@ -106,6 +107,7 @@ const AppRouter = () => {
         <Route path="notifications" element={<PermissionRoute permission="notifications.view"><Notifications /></PermissionRoute>} />
         <Route path="notification-templates" element={<PermissionRoute permission="notification_templates.view"><NotificationTemplates /></PermissionRoute>} />
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
+        <Route path="medical-records/:examinationId/workspace" element={<PermissionRoute permission="dental_records.view"><MedicalRecordsWorkspace /></PermissionRoute>} />
 
         <Route path="invoices" element={<PermissionRoute permission="finance.view"><InvoiceManagement /></PermissionRoute>} />
         <Route path="revenue" element={<PermissionRoute permission="reports.view"><RevenueReport /></PermissionRoute>} />

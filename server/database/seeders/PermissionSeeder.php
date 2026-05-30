@@ -199,5 +199,60 @@ class PermissionSeeder extends Seeder
         if ($receptionist && ! empty($uc10ReceptionistIds)) {
             $receptionist->permissions()->syncWithoutDetaching($uc10ReceptionistIds);
         }
+
+        // UC12 - Quan ly ho so benh an. Bo sung 2 slug lock/unlock ngoai
+        // matrix dental_records.{view,create,edit,delete,approve,export}.
+        // Phan quyen mac dinh:
+        //   - admin: full (gom ca lock/unlock).
+        //   - bac_si: view/create/edit/export/lock (chi voi phien cua minh
+        //     - owner check trong Policy).
+        //   - le_tan: view (chi truong hanh chinh/thanh toan - field masking
+        //     server-side).
+        //   - ke_toan: view (chi du lieu tai chinh sau khi hoan tat).
+        $uc12LockSlugs = [
+            'dental_records.lock' => 'Khoa ho so benh an',
+            'dental_records.unlock' => 'Mo khoa ho so benh an',
+        ];
+        $uc12LockIds = [];
+        $uc12LockOnlyIds = [];
+        foreach ($uc12LockSlugs as $slug => $name) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'dental_records']
+            );
+            $uc12LockIds[] = $permission->id;
+            if ($slug === 'dental_records.lock') {
+                $uc12LockOnlyIds[] = $permission->id;
+            }
+        }
+        if ($adminRole && ! empty($uc12LockIds)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc12LockIds);
+        }
+
+        $doctorRole = Role::where('slug', 'bac_si')->first();
+        $accountantRole = Role::where('slug', 'ke_toan')->first();
+
+        $doctorDentalSlugs = Permission::whereIn('slug', [
+            'dental_records.view',
+            'dental_records.create',
+            'dental_records.edit',
+            'dental_records.export',
+        ])->pluck('id')->all();
+        if ($doctorRole && ! empty($doctorDentalSlugs)) {
+            $doctorRole->permissions()->syncWithoutDetaching($doctorDentalSlugs);
+        }
+        if ($doctorRole && ! empty($uc12LockOnlyIds)) {
+            $doctorRole->permissions()->syncWithoutDetaching($uc12LockOnlyIds);
+        }
+
+        $viewOnlyId = Permission::where('slug', 'dental_records.view')->value('id');
+        if ($viewOnlyId) {
+            if ($receptionist) {
+                $receptionist->permissions()->syncWithoutDetaching([$viewOnlyId]);
+            }
+            if ($accountantRole) {
+                $accountantRole->permissions()->syncWithoutDetaching([$viewOnlyId]);
+            }
+        }
     }
 }
