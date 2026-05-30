@@ -138,6 +138,32 @@ class PermissionSeeder extends Seeder
             $receptionist->permissions()->syncWithoutDetaching($dispatchIds);
         }
 
+        // UC11 - Tiep nhan / Check-in benh nhan. Tach 2 slug rieng (check_in /
+        // cancel_check_in). Mac dinh le_tan + admin co check_in; cancel chi
+        // admin (BR10 - "Admin hoac nguoi co quyen dac biet").
+        $checkInSlugs = [
+            'appointments.check_in' => 'Check-in benh nhan',
+            'appointments.cancel_check_in' => 'Huy check-in benh nhan',
+        ];
+        $checkInIds = [];
+        $checkInOnlyIds = [];
+        foreach ($checkInSlugs as $slug => $name) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'appointments']
+            );
+            $checkInIds[] = $permission->id;
+            if ($slug === 'appointments.check_in') {
+                $checkInOnlyIds[] = $permission->id;
+            }
+        }
+        if ($adminRole && ! empty($checkInIds)) {
+            $adminRole->permissions()->syncWithoutDetaching($checkInIds);
+        }
+        if ($receptionist && ! empty($checkInOnlyIds)) {
+            $receptionist->permissions()->syncWithoutDetaching($checkInOnlyIds);
+        }
+
         // UC10 - Quan ly thong bao lich hen. Tach module rieng "notifications"
         // va "notification_templates" de phan biet rang buoc quyen le tan vs
         // admin (notifications.cancel + notification_templates.* chi admin).

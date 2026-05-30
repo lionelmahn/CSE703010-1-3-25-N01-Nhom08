@@ -31,6 +31,17 @@ class AppointmentStatusHistory extends Model
         self::ACTION_UNASSIGNED,
     ];
 
+    // UC11 - tiep nhan / check-in.
+    public const ACTION_CHECKED_IN = 'checked_in';
+    public const ACTION_CHECK_IN_CANCELLED = 'check_in_cancelled';
+    public const ACTION_NO_SHOW = 'no_show';
+
+    public const CHECK_IN_ACTIONS = [
+        self::ACTION_CHECKED_IN,
+        self::ACTION_CHECK_IN_CANCELLED,
+        self::ACTION_NO_SHOW,
+    ];
+
     protected $fillable = [
         'appointment_id',
         'action',

@@ -2,6 +2,7 @@ import {
   Bell,
   BriefcaseMedical,
   Calendar,
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   FileText,
@@ -32,14 +33,14 @@ import {
  */
 
 export const SIDEBAR_GROUPS = [
-  { id: 'overview',     label: 'Tổng quan' },
+  { id: 'overview', label: 'Tổng quan' },
   { id: 'appointments', label: 'Lịch hẹn & Tiếp nhận' },
-  { id: 'patients',     label: 'Bệnh nhân & Hồ sơ' },
-  { id: 'schedules',    label: 'Lịch làm việc' },
-  { id: 'services',     label: 'Dịch vụ & Bảng giá' },
-  { id: 'finance',      label: 'Tài chính' },
-  { id: 'staff',        label: 'Nhân sự' },
-  { id: 'system',       label: 'Hệ thống' },
+  { id: 'patients', label: 'Bệnh nhân & Hồ sơ' },
+  { id: 'schedules', label: 'Lịch làm việc' },
+  { id: 'services', label: 'Dịch vụ & Bảng giá' },
+  { id: 'finance', label: 'Tài chính' },
+  { id: 'staff', label: 'Nhân sự' },
+  { id: 'system', label: 'Hệ thống' },
 ];
 
 export const SIDEBAR_ITEMS = [
@@ -77,6 +78,14 @@ export const SIDEBAR_ITEMS = [
     group: 'appointments',
     roles: ['admin', 'le_tan'],
     requiredPermissions: ['appointments.assign'],
+  },
+  {
+    label: 'Tiếp nhận / Check-in',
+    path: '/reception',
+    icon: ClipboardCheck,
+    group: 'appointments',
+    roles: ['admin', 'le_tan'],
+    requiredPermissions: ['appointments.view'],
   },
   {
     label: 'Thông báo lịch hẹn',

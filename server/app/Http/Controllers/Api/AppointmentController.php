@@ -339,7 +339,14 @@ class AppointmentController extends Controller
 
     protected function transform(Appointment $a, bool $withHistory = false): array
     {
-        $a->loadMissing(['patient', 'assignedDoctor:id,name,email', 'creator:id,name', 'updater:id,name', 'bookingRequest:id,code,status,source']);
+        $a->loadMissing([
+            'patient',
+            'assignedDoctor:id,name,email',
+            'creator:id,name',
+            'updater:id,name',
+            'bookingRequest:id,code,status,source',
+            'checkedInBy:id,name',
+        ]);
         if ($withHistory) {
             $a->loadMissing(['histories.actor:id,name']);
         }
@@ -395,6 +402,10 @@ class AppointmentController extends Controller
                     'at' => optional($h->created_at)?->toIso8601String(),
                 ])->values()->all()
                 : null,
+            // UC11 - check-in metadata (read-only o UC7 controller).
+            'checked_in_at' => optional($a->checked_in_at)->toIso8601String(),
+            'checked_in_by' => $a->checkedInBy?->name,
+            'arrival_flag' => $a->arrival_flag,
             'allowed_actions' => [
                 'edit' => $a->canBeEdited(),
                 'reschedule' => $a->canBeRescheduled(),
@@ -402,6 +413,10 @@ class AppointmentController extends Controller
                 'assign' => $a->canAssignDoctor(),
                 'reassign' => $a->canReassignDoctor(),
                 'unassign' => $a->canUnassignDoctor(),
+                // UC11.
+                'check_in' => $a->canBeCheckedIn(),
+                'cancel_check_in' => $a->canCancelCheckIn(),
+                'no_show' => $a->canMarkNoShow(),
             ],
         ];
     }

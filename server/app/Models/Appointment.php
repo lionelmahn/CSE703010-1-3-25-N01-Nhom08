@@ -106,6 +106,44 @@ class Appointment extends Model
         self::STATUS_CONFIRMED,
     ];
 
+    /**
+     * UC11 - Trang thai cho phep check-in (SR1, SR2, SR3).
+     */
+    public const CHECK_IN_ALLOWED_STATUSES = [
+        self::STATUS_WAITING_DOCTOR_ASSIGNMENT,
+        self::STATUS_DOCTOR_ASSIGNED,
+        self::STATUS_CONFIRMED,
+    ];
+
+    /**
+     * UC11 - Trang thai cho phep huy check-in (SR4). Chi `da_check_in`,
+     * khong cho khi da `dang_kham` (VR10).
+     */
+    public const CANCEL_CHECK_IN_ALLOWED_STATUSES = [
+        self::STATUS_CHECKED_IN,
+    ];
+
+    /**
+     * UC11 - Trang thai cho phep mark no-show (VR12, SR5).
+     */
+    public const NO_SHOW_ALLOWED_STATUSES = [
+        self::STATUS_WAITING_DOCTOR_ASSIGNMENT,
+        self::STATUS_DOCTOR_ASSIGNED,
+        self::STATUS_CONFIRMED,
+    ];
+
+    public const ARRIVAL_EARLY = 'early';
+    public const ARRIVAL_ON_TIME = 'on_time';
+    public const ARRIVAL_LATE = 'late';
+    public const ARRIVAL_VERY_LATE = 'very_late';
+
+    public const ALL_ARRIVAL_FLAGS = [
+        self::ARRIVAL_EARLY,
+        self::ARRIVAL_ON_TIME,
+        self::ARRIVAL_LATE,
+        self::ARRIVAL_VERY_LATE,
+    ];
+
     public const SOURCE_ONLINE = 'online';
     public const SOURCE_WALK_IN = 'tai_quay';
     public const SOURCE_PHONE = 'dien_thoai';
@@ -136,6 +174,16 @@ class Appointment extends Model
         'cancel_reason',
         'cancelled_at',
         'rescheduled_at',
+        // UC11 - check-in.
+        'checked_in_at',
+        'checked_in_by',
+        'arrival_flag',
+        'pre_checkin_status',
+        'no_show_at',
+        'no_show_by',
+        'no_show_reason',
+        'check_in_cancelled_at',
+        'check_in_cancelled_by',
     ];
 
     protected $casts = [
@@ -143,6 +191,10 @@ class Appointment extends Model
         'service_ids' => 'array',
         'cancelled_at' => 'datetime',
         'rescheduled_at' => 'datetime',
+        // UC11.
+        'checked_in_at' => 'datetime',
+        'no_show_at' => 'datetime',
+        'check_in_cancelled_at' => 'datetime',
     ];
 
     public function patient(): BelongsTo
@@ -173,6 +225,26 @@ class Appointment extends Model
     public function histories(): HasMany
     {
         return $this->hasMany(AppointmentStatusHistory::class)->orderBy('created_at');
+    }
+
+    public function checkedInBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'checked_in_by');
+    }
+
+    public function noShowBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'no_show_by');
+    }
+
+    public function checkInCancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'check_in_cancelled_by');
+    }
+
+    public function queueEntries(): HasMany
+    {
+        return $this->hasMany(AppointmentQueueEntry::class)->orderByDesc('entered_at');
     }
 
     /**
@@ -231,5 +303,20 @@ class Appointment extends Model
     {
         return in_array($this->status, self::UNASSIGN_ALLOWED_STATUSES, true)
             && $this->assigned_doctor_id !== null;
+    }
+
+    public function canBeCheckedIn(): bool
+    {
+        return in_array($this->status, self::CHECK_IN_ALLOWED_STATUSES, true);
+    }
+
+    public function canCancelCheckIn(): bool
+    {
+        return in_array($this->status, self::CANCEL_CHECK_IN_ALLOWED_STATUSES, true);
+    }
+
+    public function canMarkNoShow(): bool
+    {
+        return in_array($this->status, self::NO_SHOW_ALLOWED_STATUSES, true);
     }
 }

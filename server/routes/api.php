@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\ProfessionalProfileController;
 use App\Http\Controllers\Api\PublicBookingController;
+use App\Http\Controllers\Api\ReceptionController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServicePackageController;
@@ -263,6 +264,21 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:appointments.unassign')->group(function () {
         Route::post('/appointments/{id}/unassign-doctor', [AppointmentController::class, 'unassignDoctor'])->whereNumber('id');
+    });
+
+    // UC11 - Tiep nhan / check-in benh nhan.
+    Route::middleware('permission:appointments.view')->group(function () {
+        Route::get('/reception/today-appointments', [ReceptionController::class, 'todayAppointments']);
+        Route::get('/reception/queue', [ReceptionController::class, 'queue']);
+        Route::get('/reception/queue-stats', [ReceptionController::class, 'queueStats']);
+        Route::get('/reception/reasons', [ReceptionController::class, 'reasons']);
+    });
+    Route::middleware('permission:appointments.check_in')->group(function () {
+        Route::post('/appointments/{id}/check-in', [ReceptionController::class, 'checkIn'])->whereNumber('id');
+        Route::post('/appointments/{id}/no-show', [ReceptionController::class, 'markNoShow'])->whereNumber('id');
+    });
+    Route::middleware('permission:appointments.cancel_check_in')->group(function () {
+        Route::post('/appointments/{id}/cancel-check-in', [ReceptionController::class, 'cancelCheckIn'])->whereNumber('id');
     });
 
     // UC5 - Patient profile management.
