@@ -7,6 +7,7 @@ use App\Models\AppointmentQueueEntry;
 use App\Models\AppointmentStatusHistory;
 use App\Models\ExaminationHistory;
 use App\Models\ExaminationSession;
+use App\Models\Invoice;
 use App\Models\PatientHistory;
 use App\Models\User;
 use App\Models\WorkSchedule;
@@ -35,6 +36,7 @@ class ExaminationService
     public function __construct(
         private readonly AuditLogService $auditLog,
         private readonly ComplexityConfigService $complexityConfig,
+        private readonly InvoiceService $invoices,
     ) {}
 
     /* =====================================================================
@@ -480,6 +482,10 @@ class ExaminationService
                 'unlinked_shift' => $session->unlinked_shift,
             ]);
 
+            // UC13 - Auto-create invoice ngay sau khi complete (Q17).
+            // Idempotent: neu da co invoice main active thi tra ve no.
+            $this->invoices->createFromExamination($session, $actor);
+
             return $session->fresh(['serviceItems', 'toothChart']);
         });
     }
@@ -607,6 +613,20 @@ class ExaminationService
             if ($session->status !== ExaminationSession::STATUS_DA_KHOA) {
                 throw ValidationException::withMessages([
                     'status' => 'Phien chua duoc khoa (SR6).',
+                ])->status(409);
+            }
+
+            // R17 (UC13): chan unlock khi hoa don da paid - tranh sai lech
+            // tai chinh. Admin can hoan tien + huy hoa don truoc.
+            $paidInvoice = Invoice::query()
+                ->where('examination_id', $session->id)
+                ->where('type', Invoice::TYPE_MAIN)
+                ->whereIn('status', [Invoice::STATUS_PAID, Invoice::STATUS_PARTIAL])
+                ->first();
+            if ($paidInvoice) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hoa don '.$paidInvoice->code.' da co thanh toan ('.$paidInvoice->status.'). '
+                        .'Vui long hoan tien va huy hoa don truoc khi mo khoa (R17).',
                 ])->status(409);
             }
 

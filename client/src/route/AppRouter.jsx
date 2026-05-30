@@ -109,7 +109,8 @@ const AppRouter = () => {
         <Route path="medical-records" element={<PermissionRoute permission="dental_records.view"><MedicalRecords /></PermissionRoute>} />
         <Route path="medical-records/:examinationId/workspace" element={<PermissionRoute permission="dental_records.view"><MedicalRecordsWorkspace /></PermissionRoute>} />
 
-        <Route path="invoices" element={<PermissionRoute permission="finance.view"><InvoiceManagement /></PermissionRoute>} />
+        <Route path="invoices" element={<PermissionRoute permission="invoices.view"><InvoiceManagement /></PermissionRoute>} />
+        <Route path="invoices/:id" element={<PermissionRoute permission="invoices.view"><InvoiceManagement /></PermissionRoute>} />
         <Route path="revenue" element={<PermissionRoute permission="reports.view"><RevenueReport /></PermissionRoute>} />
         <Route path="my-professional-profile" element={<MyProfessionalProfile />} />
         <Route path="work-schedules" element={<PermissionRoute permission="schedules.view"><WorkScheduleManagement /></PermissionRoute>} />

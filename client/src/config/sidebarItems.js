@@ -181,12 +181,12 @@ export const SIDEBAR_ITEMS = [
 
   // -- Tài chính --------------------------------------------------------------
   {
-    label: 'Quản lý hóa đơn',
+    label: 'Thanh toán hóa đơn',
     path: '/invoices',
     icon: FileText,
     group: 'finance',
-    roles: ['admin', 'ke_toan'],
-    requiredPermissions: ['finance.view'],
+    roles: ['admin', 'ke_toan', 'le_tan'],
+    requiredPermissions: ['invoices.view'],
   },
   {
     label: 'Báo cáo doanh thu',

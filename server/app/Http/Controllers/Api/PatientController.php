@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MergePatientsRequest;
 use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
+use App\Models\Invoice;
 use App\Models\Patient;
 use App\Services\PatientService;
 use Illuminate\Http\JsonResponse;
@@ -176,6 +177,28 @@ class PatientController extends Controller
                 'metadata' => $h->metadata,
                 'at' => optional($h->created_at)->toIso8601String(),
             ])->all(),
+        ]);
+    }
+
+    public function invoices(int $id, Request $request): JsonResponse
+    {
+        $this->patients->findPatient($id);
+
+        $perPage = max(1, min(100, (int) ($request->query('per_page', 20))));
+        $paginator = Invoice::query()
+            ->where('patient_id', $id)
+            ->with(['examination:id,code', 'doctor:id,name'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
         ]);
     }
 

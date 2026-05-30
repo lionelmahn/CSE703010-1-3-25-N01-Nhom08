@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Save, CheckCircle2, Lock, Unlock, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, Lock, Unlock, MoreHorizontal, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { statusLabel, statusToneClass, ageFromDob, formatDateTime } from '../lib/format';
@@ -17,9 +17,11 @@ export default function ExaminationHeader({
   onComplete,
   onLock,
   onUnlock,
+  onGoToBilling,
   canEdit,
   canLock,
   canUnlock,
+  canBilling,
   savingDraft,
   completing,
 }) {
@@ -53,6 +55,12 @@ export default function ExaminationHeader({
             <Button size="sm" onClick={onComplete} disabled={completing} className="bg-slate-900 hover:bg-slate-800">
               <CheckCircle2 className="h-4 w-4 mr-1" />
               {completing ? 'Đang hoàn tất...' : 'Hoàn tất bệnh án'}
+            </Button>
+          ) : null}
+          {canBilling && session.status === 'cho_thanh_toan' ? (
+            <Button size="sm" onClick={onGoToBilling} className="bg-teal-600 hover:bg-teal-700 text-white">
+              <Receipt className="h-4 w-4 mr-1" />
+              Chuyển thanh toán
             </Button>
           ) : null}
           {canLock && !isLocked ? (

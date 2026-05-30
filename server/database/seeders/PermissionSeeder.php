@@ -21,6 +21,8 @@ class PermissionSeeder extends Seeder
             'appointments' => 'Lich hen',
             'dental_records' => 'Kham nha khoa',
             'finance' => 'Tai chinh',
+            'invoices' => 'Hoa don',
+            'payments' => 'Thanh toan',
             'reports' => 'Bao cao',
             'schedules' => 'Lich lam viec',
             'prices' => 'Bang gia dich vu',
@@ -253,6 +255,52 @@ class PermissionSeeder extends Seeder
             if ($accountantRole) {
                 $accountantRole->permissions()->syncWithoutDetaching([$viewOnlyId]);
             }
+        }
+
+        // UC13 - Thanh toan chi phi kham benh. Module rieng `invoices` +
+        // `payments` (align UC12 dental_records/notifications style). Bo sung
+        // 5 slug dac biet ngoai matrix module.action: invoices.cancel,
+        // invoices.adjust, invoices.discount, invoices.print, payments.refund.
+        $uc13ExtraSlugs = [
+            'invoices.cancel' => ['name' => 'Huy hoa don', 'module' => 'invoices'],
+            'invoices.adjust' => ['name' => 'Dieu chinh hoa don', 'module' => 'invoices'],
+            'invoices.discount' => ['name' => 'Ap dung giam gia / phu thu', 'module' => 'invoices'],
+            'invoices.print' => ['name' => 'In / xuat hoa don', 'module' => 'invoices'],
+            'payments.refund' => ['name' => 'Hoan tien', 'module' => 'payments'],
+        ];
+        $uc13ExtraIds = [];
+        foreach ($uc13ExtraSlugs as $slug => $meta) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $meta['name'], 'module' => $meta['module']]
+            );
+            $uc13ExtraIds[] = $permission->id;
+        }
+        if ($adminRole && ! empty($uc13ExtraIds)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc13ExtraIds);
+        }
+
+        // Phan quyen mac dinh UC13:
+        //   - admin: full (auto qua matrix + extra slugs).
+        //   - ke_toan: full invoice + payment + refund (cap nhat doanh thu).
+        //   - le_tan: view, create, discount, print, payments.create (thu tien
+        //     truc tiep tai quay). KHONG co cancel / adjust / refund.
+        //   - bac_si: KHONG mac dinh (tranh lo gia khi tu van).
+        $accountantBillingSlugs = Permission::whereIn('slug', [
+            'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.export',
+            'invoices.cancel', 'invoices.adjust', 'invoices.discount', 'invoices.print',
+            'payments.view', 'payments.create', 'payments.refund', 'payments.export',
+        ])->pluck('id')->all();
+        if ($accountantRole && ! empty($accountantBillingSlugs)) {
+            $accountantRole->permissions()->syncWithoutDetaching($accountantBillingSlugs);
+        }
+
+        $receptionistBillingSlugs = Permission::whereIn('slug', [
+            'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
+            'payments.view', 'payments.create',
+        ])->pluck('id')->all();
+        if ($receptionist && ! empty($receptionistBillingSlugs)) {
+            $receptionist->permissions()->syncWithoutDetaching($receptionistBillingSlugs);
         }
     }
 }

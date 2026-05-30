@@ -2,28 +2,34 @@
 
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\ExaminationController;
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\NotificationTemplateController;
+use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MyProfessionalProfileController;
 use App\Http\Controllers\Api\MyWorkScheduleController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationTemplateController;
 use App\Http\Controllers\Api\OnlineBookingController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProfessionalProfileController;
 use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ReceptionController;
+use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServicePackageController;
 use App\Http\Controllers\Api\ServicePriceController;
 use App\Http\Controllers\Api\ShiftSwapRequestController;
+use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\ToothStatusController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\WorkScheduleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -54,9 +60,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/user', function (Request $request) {
         $user = $request->user();
+
         return array_merge($user->toArray(), [
             'role' => $user->roles->first()?->slug ?? '',
-            'permission_slugs' => $user->getPermissionSlugs()
+            'permission_slugs' => $user->getPermissionSlugs(),
         ]);
     });
 
@@ -87,14 +94,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users/history', [UserController::class, 'getHistory']);
 
         // Staff Routes
-        Route::get('/staff', [\App\Http\Controllers\Api\StaffController::class, 'index']);
-        Route::post('/staff', [\App\Http\Controllers\Api\StaffController::class, 'store']);
-        Route::get('/staff/{staff}', [\App\Http\Controllers\Api\StaffController::class, 'show'])->whereNumber('staff');
-        Route::put('/staff/{staff}', [\App\Http\Controllers\Api\StaffController::class, 'update'])->whereNumber('staff');
-        Route::put('/staff/{staff}/status', [\App\Http\Controllers\Api\StaffController::class, 'changeStatus'])->whereNumber('staff');
-        Route::get('/staff/{staff}/history', [\App\Http\Controllers\Api\StaffController::class, 'history'])->whereNumber('staff');
-        Route::post('/staff/{staff}/reset-password', [\App\Http\Controllers\Api\StaffController::class, 'resetPassword'])->whereNumber('staff');
-        Route::get('/branches', [\App\Http\Controllers\Api\BranchController::class, 'index']);
+        Route::get('/staff', [StaffController::class, 'index']);
+        Route::post('/staff', [StaffController::class, 'store']);
+        Route::get('/staff/{staff}', [StaffController::class, 'show'])->whereNumber('staff');
+        Route::put('/staff/{staff}', [StaffController::class, 'update'])->whereNumber('staff');
+        Route::put('/staff/{staff}/status', [StaffController::class, 'changeStatus'])->whereNumber('staff');
+        Route::get('/staff/{staff}/history', [StaffController::class, 'history'])->whereNumber('staff');
+        Route::post('/staff/{staff}/reset-password', [StaffController::class, 'resetPassword'])->whereNumber('staff');
+        Route::get('/branches', [BranchController::class, 'index']);
         Route::get('/professional-profiles/options', [ProfessionalProfileController::class, 'options']);
         Route::get('/professional-profiles', [ProfessionalProfileController::class, 'index']);
         Route::post('/professional-profiles', [ProfessionalProfileController::class, 'store']);
@@ -332,6 +339,39 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:dental_records.unlock')->group(function () {
         Route::post('/examinations/{id}/unlock', [ExaminationController::class, 'unlock'])->whereNumber('id');
+    });
+
+    // UC13 - Thanh toan chi phi kham benh.
+    Route::middleware('permission:invoices.view')->group(function () {
+        Route::get('/billing/queue', [BillingController::class, 'queue']);
+        Route::get('/billing/dashboard', [BillingController::class, 'dashboard']);
+        Route::get('/billing/audit-logs', [BillingController::class, 'auditLogs']);
+        Route::get('/invoices', [InvoiceController::class, 'index']);
+        Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->whereNumber('id');
+        Route::get('/patients/{id}/invoices', [PatientController::class, 'invoices'])->whereNumber('id');
+    });
+    Route::middleware('permission:invoices.create')->group(function () {
+        Route::post('/invoices', [InvoiceController::class, 'store']);
+    });
+    Route::middleware('permission:invoices.discount')->group(function () {
+        Route::post('/invoices/{id}/discount', [InvoiceController::class, 'discount'])->whereNumber('id');
+        Route::post('/invoices/{id}/surcharge', [InvoiceController::class, 'surcharge'])->whereNumber('id');
+    });
+    Route::middleware('permission:invoices.cancel')->group(function () {
+        Route::post('/invoices/{id}/cancel', [InvoiceController::class, 'cancel'])->whereNumber('id');
+    });
+    Route::middleware('permission:invoices.adjust')->group(function () {
+        Route::post('/invoices/{id}/adjust', [InvoiceController::class, 'adjust'])->whereNumber('id');
+    });
+    Route::middleware('permission:invoices.print')->group(function () {
+        Route::get('/invoices/{id}/print', [InvoiceController::class, 'print'])->whereNumber('id');
+        Route::get('/payments/{id}/receipt', [PaymentController::class, 'receipt'])->whereNumber('id');
+    });
+    Route::middleware('permission:payments.create')->group(function () {
+        Route::post('/invoices/{id}/payments', [PaymentController::class, 'store'])->whereNumber('id');
+    });
+    Route::middleware('permission:payments.refund')->group(function () {
+        Route::post('/invoices/{id}/refunds', [RefundController::class, 'store'])->whereNumber('id');
     });
 
     // UC10 - Quan ly thong bao lich hen.

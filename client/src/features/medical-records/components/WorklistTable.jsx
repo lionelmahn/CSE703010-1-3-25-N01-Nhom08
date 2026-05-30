@@ -1,5 +1,6 @@
 import React from 'react';
-import { Stethoscope, ChevronRight, Clock, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Stethoscope, ChevronRight, Clock, Lock, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,7 +19,9 @@ const Empty = ({ loading }) => (
 /**
  * UC12 - Bang worklist hồ sơ bệnh án.
  */
-export default function WorklistTable({ items = [], loading, onOpen }) {
+export default function WorklistTable({ items = [], loading, onOpen, onGoToBilling }) {
+  const navigate = useNavigate();
+  const goBilling = onGoToBilling || ((row) => navigate(`/invoices?examinationId=${row.id}`));
   if (!items.length) return <Empty loading={loading} />;
 
   return (
@@ -72,15 +75,28 @@ export default function WorklistTable({ items = [], loading, onOpen }) {
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1"
-                    onClick={() => onOpen?.(row)}
-                  >
-                    Mở hồ sơ
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    {row.status === 'cho_thanh_toan' ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-teal-700 hover:text-teal-800 hover:bg-teal-50"
+                        title="Chuyển thanh toán"
+                        onClick={(e) => { e.stopPropagation(); goBilling(row); }}
+                      >
+                        <Receipt className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => onOpen?.(row)}
+                    >
+                      Mở hồ sơ
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             );

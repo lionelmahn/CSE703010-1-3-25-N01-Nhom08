@@ -79,6 +79,7 @@ export default function MedicalRecordsWorkspace() {
 
   const canLock = userRole === 'admin' || hasPermission?.('dental_records.lock');
   const canUnlock = userRole === 'admin' || hasPermission?.('dental_records.unlock');
+  const canBilling = hasPermission?.('invoices.view');
 
   // Initialize form values from server snapshot (only when session.id changes).
   useEffect(() => {
@@ -361,9 +362,11 @@ export default function MedicalRecordsWorkspace() {
         onComplete={() => setCompleteOpen(true)}
         onLock={() => setLockOpen(true)}
         onUnlock={() => setUnlockOpen(true)}
+        onGoToBilling={() => navigate(`/invoices?examinationId=${session.id}`)}
         canEdit={canEdit}
         canLock={canLock}
         canUnlock={canUnlock}
+        canBilling={canBilling}
         savingDraft={savingDraft}
         completing={completing}
       />
