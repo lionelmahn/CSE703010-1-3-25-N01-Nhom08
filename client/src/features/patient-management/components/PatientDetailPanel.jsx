@@ -88,20 +88,34 @@ const PatientDetailPanel = ({
   };
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm flex flex-col h-full overflow-hidden">
-      <div className="px-4 py-3 flex justify-between items-center border-b">
-        <div className="flex items-center gap-2 min-w-0">
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 lg:hidden">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-white shadow-sm">
+      {/*
+        Header: title on its own row, action buttons wrap to a second row
+        below when the panel is narrow. This keeps the title legible
+        regardless of how many conditional actions are visible (refresh
+        + edit + (de)activate + merge + history = up to 5 buttons).
+      */}
+      <div className="flex min-w-0 flex-col gap-2 border-b px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 xl:hidden"
+            aria-label="Đóng chi tiết"
+          >
             <ChevronLeft size={16} />
           </button>
-          <h2 className="font-semibold text-gray-800 text-sm truncate">Chi tiết hồ sơ bệnh nhân</h2>
+          <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">
+            Chi tiết hồ sơ bệnh nhân
+          </h2>
         </div>
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="-mx-1 flex flex-wrap items-center gap-1.5 px-1">
           <button
             type="button"
             onClick={() => onRefresh?.()}
-            className="px-2.5 py-1.5 border rounded bg-white text-gray-700 hover:bg-gray-50 text-[11px] font-medium flex items-center gap-1.5"
+            className="flex items-center gap-1.5 rounded border bg-white px-2 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50"
             title="Tải lại"
+            aria-label="Tải lại"
           >
             <RefreshCw size={12} />
           </button>
@@ -109,7 +123,7 @@ const PatientDetailPanel = ({
             <button
               type="button"
               onClick={() => onEdit?.(patient)}
-              className="px-2.5 py-1.5 border rounded bg-white text-gray-700 hover:bg-gray-50 text-[11px] font-medium flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded border bg-white px-2.5 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50"
             >
               <Pencil size={12} /> Chỉnh sửa
             </button>
@@ -118,7 +132,7 @@ const PatientDetailPanel = ({
             <button
               type="button"
               onClick={() => onDeactivate?.(patient)}
-              className="px-2.5 py-1.5 border rounded bg-white text-gray-700 hover:bg-gray-50 text-[11px] font-medium flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded border bg-white px-2.5 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50"
             >
               <XCircle size={12} /> Ngừng hoạt động
             </button>
@@ -127,7 +141,7 @@ const PatientDetailPanel = ({
             <button
               type="button"
               onClick={() => onReactivate?.(patient)}
-              className="px-2.5 py-1.5 border rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-medium flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded border bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100"
             >
               <RefreshCw size={12} /> Mở lại hồ sơ
             </button>
@@ -136,7 +150,7 @@ const PatientDetailPanel = ({
             <button
               type="button"
               onClick={() => onMerge?.(patient)}
-              className="px-2.5 py-1.5 border rounded bg-white text-gray-700 hover:bg-gray-50 text-[11px] font-medium flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded border bg-white px-2.5 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50"
             >
               <GitMerge size={12} /> Gộp hồ sơ
             </button>
@@ -144,7 +158,7 @@ const PatientDetailPanel = ({
           <button
             type="button"
             onClick={() => onShowHistory?.(patient)}
-            className="px-2.5 py-1.5 border rounded bg-white text-gray-700 hover:bg-gray-50 text-[11px] font-medium flex items-center gap-1.5"
+            className="flex items-center gap-1.5 rounded border bg-white px-2.5 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50"
           >
             <History size={12} /> Lịch sử
           </button>
@@ -155,11 +169,17 @@ const PatientDetailPanel = ({
         <div className="bg-red-50 border-b border-red-100 text-red-700 text-xs px-4 py-2">{error}</div>
       )}
 
-      <div className="p-4 flex flex-col sm:flex-row gap-4 items-start border-b bg-gray-50/30">
-        <div className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0">
+      {/*
+        Identity section is horizontal when the panel takes the full
+        page width (md/lg viewports stacked under the table) and stacks
+        vertically again on `xl+` where the panel is locked to 420px,
+        because three columns can't fit comfortably in 420px.
+      */}
+      <div className="flex flex-col items-start gap-4 border-b bg-gray-50/30 p-4 sm:flex-row xl:flex-col">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gray-200 font-bold text-gray-500">
           {buildInitials(patient.full_name)}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-[10px] text-gray-500 mb-0.5">{patient.patient_code}</div>
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <h3 className="font-bold text-gray-900 text-base">{patient.full_name}</h3>
@@ -182,7 +202,7 @@ const PatientDetailPanel = ({
             </p>
           )}
         </div>
-        <div className="text-left sm:text-right text-[11px] text-gray-500 space-y-0.5 flex-shrink-0">
+        <div className="min-w-0 space-y-0.5 text-left text-[11px] text-gray-500 sm:text-right xl:w-full xl:text-left">
           <div>Ngày tạo: <span className="font-medium text-gray-900">{formatDateTime(patient.created_at)}</span></div>
           {patient.created_by && <div>Người tạo: <span className="font-medium text-gray-900">{patient.created_by}</span></div>}
           <div>Cập nhật: <span className="font-medium text-gray-900">{formatDateTime(patient.updated_at)}</span></div>
@@ -219,7 +239,12 @@ const PatientDetailPanel = ({
 
       <div className="flex-1 overflow-y-auto p-4">
         {tab === DETAIL_TABS.GENERAL && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6">
+          /*
+            Two-column on tablet (panel is full-width); single column on
+            xl+ where the panel is locked to 420px and a two-column grid
+            would squeeze both halves uncomfortably.
+          */
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr] xl:grid-cols-1">
             <div className="space-y-4">
               <div>
                 <h4 className="font-bold text-gray-900 border-b pb-1.5 mb-2.5 uppercase text-[11px]">Thông tin cá nhân</h4>

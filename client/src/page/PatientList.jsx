@@ -254,25 +254,26 @@ export default function PatientList() {
   };
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+    <div className="flex w-full min-w-0 flex-col gap-4">
+      {/* Page header card: title + global page-level actions. */}
+      <div className="flex min-w-0 flex-col gap-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
             <Users size={20} />
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-800">Quản lý hồ sơ bệnh nhân</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+          <div className="min-w-0">
+            <h3 className="truncate text-xl font-bold text-slate-800">Quản lý hồ sơ bệnh nhân</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
               Tổng cộng <strong>{meta.total}</strong> hồ sơ • UC5
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
           <button
             type="button"
             onClick={() => refresh()}
             disabled={loading}
-            className="px-3 py-1.5 border rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-xs font-medium flex items-center gap-1.5 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             <RefreshCw size={12} /> Tải lại
           </button>
@@ -280,7 +281,7 @@ export default function PatientList() {
             <button
               type="button"
               onClick={() => openMerge(detail)}
-              className="px-3 py-1.5 border rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-xs font-medium flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
             >
               <GitMerge size={12} /> Gộp hồ sơ
             </button>
@@ -288,15 +289,25 @@ export default function PatientList() {
           <button
             type="button"
             onClick={openCreate}
-            className="px-3 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5"
+            className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
           >
             <Plus size={12} /> Thêm hồ sơ
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-4">
-        <div className="border rounded-lg shadow-sm flex flex-col bg-white min-h-[520px]">
+      {/*
+        Master-detail grid:
+        - <xl: single column, detail panel stacks under the table.
+        - xl+: 2 columns, detail panel locked at a stable 420px so it
+          stays readable while the table column gets the rest of the
+          width via `minmax(0, 1fr)`.
+        `min-w-0` on both columns is required so flex/grid descendants
+        (notably the table's `min-w-[900px]`) can scroll inside their own
+        container instead of pushing the layout horizontally.
+      */}
+      <div className="grid w-full min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="flex min-h-[520px] min-w-0 flex-col rounded-lg border bg-white shadow-sm">
           <PatientFilters
             filters={filters}
             onFilterChange={setFilter}
@@ -305,7 +316,7 @@ export default function PatientList() {
             loading={loading}
           />
           {error && (
-            <div className="bg-red-50 border-b border-red-100 text-red-700 text-xs px-3 py-2">{error}</div>
+            <div className="border-b border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
           )}
           <PatientListTable
             patients={items}
@@ -324,7 +335,7 @@ export default function PatientList() {
           />
         </div>
 
-        <div className="min-h-[520px]">
+        <div className="min-h-[520px] min-w-0">
           <PatientDetailPanel
             patient={detail}
             loading={detailLoading}

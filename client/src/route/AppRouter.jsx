@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
-import MainLayout from '@/layout/MainLayout';
+import AppLayout from '@/components/layout/AppLayout';
 
 import Login from '@/page/Login';
 import ForgotPassword from '@/page/ForgotPassword';
@@ -84,7 +84,7 @@ const AppRouter = () => {
       <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="dashboard" element={<DashboardByRole />} />
 
         <Route path="users" element={<PermissionRoute permission="users.view"><UserManagement /></PermissionRoute>} />
