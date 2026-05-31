@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Stethoscope, ChevronRight, Clock, Lock, Receipt } from 'lucide-react';
+import { Stethoscope, ChevronRight, Clock, Lock, Receipt, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,7 +19,7 @@ const Empty = ({ loading }) => (
 /**
  * UC12 - Bang worklist hồ sơ bệnh án.
  */
-export default function WorklistTable({ items = [], loading, onOpen, onGoToBilling }) {
+export default function WorklistTable({ items = [], loading, onOpen, onGoToBilling, onStart }) {
   const navigate = useNavigate();
   const goBilling = onGoToBilling || ((row) => navigate(`/invoices?examinationId=${row.id}`));
   if (!items.length) return <Empty loading={loading} />;
@@ -85,6 +85,17 @@ export default function WorklistTable({ items = [], loading, onOpen, onGoToBilli
                         onClick={(e) => { e.stopPropagation(); goBilling(row); }}
                       >
                         <Receipt className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                    {row.status === 'cho_kham' ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                        title="Bắt đầu khám"
+                        onClick={(e) => { e.stopPropagation(); onStart?.(row); }}
+                      >
+                        <PlayCircle className="h-4 w-4" />
                       </Button>
                     ) : null}
                     <Button

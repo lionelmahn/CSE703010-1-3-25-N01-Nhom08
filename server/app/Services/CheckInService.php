@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Appointment;
 use App\Models\AppointmentQueueEntry;
 use App\Models\AppointmentStatusHistory;
+use App\Models\ExaminationHistory;
+use App\Models\ExaminationSession;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -215,6 +217,44 @@ class CheckInService
                 'entered_at' => $now,
                 'created_by' => $actor->id,
             ]);
+
+            $session = ExaminationSession::query()
+                ->where('appointment_id', $locked->id)
+                ->whereIn('status', ExaminationSession::ACTIVE_STATUSES)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $session) {
+                $session = ExaminationSession::create([
+                    'code' => ExaminationSession::generateCode($now),
+                    'patient_id' => $locked->patient_id,
+                    'appointment_id' => $locked->id,
+                    'queue_entry_id' => $entry->id,
+                    'doctor_id' => $locked->assigned_doctor_id,
+                    'status' => ExaminationSession::STATUS_CHO_KHAM,
+                    'created_by' => $actor->id,
+                    'updated_by' => $actor->id,
+                ]);
+
+                ExaminationHistory::create([
+                    'examination_id' => $session->id,
+                    'action' => 'created_from_checkin',
+                    'actor_id' => $actor->id,
+                    'actor_name' => $actor->name,
+                    'after' => [
+                        'appointment_id' => $locked->id,
+                        'queue_entry_id' => $entry->id,
+                        'status' => $session->status,
+                    ],
+                    'reason' => 'Tao phien cho kham sau check-in',
+                    'created_at' => $now,
+                ]);
+            } elseif (! $session->queue_entry_id) {
+                $session->forceFill([
+                    'queue_entry_id' => $entry->id,
+                    'updated_by' => $actor->id,
+                ])->save();
+            }
 
             $this->logHistory(
                 $locked,

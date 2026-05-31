@@ -5,7 +5,7 @@ const DEFAULTS = {
   q: '',
   status: 'all',
   doctor_id: '',
-  tab: 'in_progress',
+  tab: 'waiting',
   from: '',
   to: '',
 };
@@ -14,7 +14,7 @@ const DEFAULTS = {
  * UC12 - Hook fetch worklist phien kham.
  *
  * Filter:
- *  - tab: in_progress | draft | completed | all
+ *  - tab: waiting | in_progress | draft | completed | all
  *  - status: chi tiet hon tab (optional)
  *  - q: code BA-... hoac ten/SĐT/ma BN.
  *  - doctor_id: filter (chi admin moi co tac dung).
@@ -26,7 +26,7 @@ export default function useMedicalRecordWorklist({ pollMs = 0 } = {}) {
   const [perPage, setPerPage] = useState(20);
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({ total: 0, current_page: 1, last_page: 1, per_page: 20 });
-  const [counts, setCounts] = useState({ in_progress: 0, draft: 0, pending_payment: 0, completed: 0, total: 0 });
+  const [counts, setCounts] = useState({ waiting: 0, in_progress: 0, draft: 0, pending_payment: 0, completed: 0, total: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

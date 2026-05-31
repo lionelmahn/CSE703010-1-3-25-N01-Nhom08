@@ -6,6 +6,7 @@ use App\Models\AppNotification;
 use App\Models\Appointment;
 use App\Models\AppointmentStatusHistory;
 use App\Models\Branch;
+use App\Models\ExaminationSession;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -570,6 +571,15 @@ class AppointmentService
                 'assigned_doctor_id' => $newDoctorUserId,
                 'updated_by' => $actor->id,
             ])->save();
+
+            ExaminationSession::query()
+                ->where('appointment_id', $locked->id)
+                ->where('status', ExaminationSession::STATUS_CHO_KHAM)
+                ->update([
+                    'doctor_id' => $newDoctorUserId,
+                    'updated_by' => $actor->id,
+                    'updated_at' => now(),
+                ]);
 
             $this->logHistory(
                 $locked,

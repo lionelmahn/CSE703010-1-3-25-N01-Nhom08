@@ -66,6 +66,8 @@ class ExaminationService
 
         if ($tab === 'in_progress') {
             $query->whereIn('status', [ExaminationSession::STATUS_DANG_KHAM]);
+        } elseif ($tab === 'waiting') {
+            $query->where('status', ExaminationSession::STATUS_CHO_KHAM);
         } elseif ($tab === 'draft') {
             $query->where('status', ExaminationSession::STATUS_NHAP);
         } elseif ($tab === 'completed') {
@@ -122,6 +124,7 @@ class ExaminationService
         $rows = (clone $base)->selectRaw('status, count(*) as c')->groupBy('status')->pluck('c', 'status');
 
         return [
+            'waiting' => (int) ($rows[ExaminationSession::STATUS_CHO_KHAM] ?? 0),
             'in_progress' => (int) ($rows[ExaminationSession::STATUS_DANG_KHAM] ?? 0),
             'draft' => (int) ($rows[ExaminationSession::STATUS_NHAP] ?? 0),
             'pending_payment' => (int) ($rows[ExaminationSession::STATUS_CHO_THANH_TOAN] ?? 0),
@@ -175,6 +178,62 @@ class ExaminationService
                 ->first();
 
             if ($existing) {
+                if ($existing->status === ExaminationSession::STATUS_CHO_KHAM) {
+                    $now = Carbon::now();
+                    $fromAppointmentStatus = $appointment->status;
+                    $existing->forceFill([
+                        'status' => ExaminationSession::STATUS_DANG_KHAM,
+                        'started_at' => $existing->started_at ?? $now,
+                        'updated_by' => $actor->id,
+                    ])->save();
+
+                    $appointment->forceFill([
+                        'status' => Appointment::STATUS_IN_PROGRESS,
+                    ])->save();
+
+                    $queueEntry = AppointmentQueueEntry::query()
+                        ->where('appointment_id', $appointment->id)
+                        ->whereIn('bucket', AppointmentQueueEntry::ACTIVE_BUCKETS)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($queueEntry) {
+                        $queueEntry->forceFill([
+                            'bucket' => AppointmentQueueEntry::BUCKET_IN_PROGRESS,
+                            'started_at' => $queueEntry->started_at ?? $now,
+                        ])->save();
+
+                        if (! $existing->queue_entry_id) {
+                            $existing->forceFill([
+                                'queue_entry_id' => $queueEntry->id,
+                            ])->save();
+                        }
+                    }
+
+                    AppointmentStatusHistory::create([
+                        'appointment_id' => $appointment->id,
+                        'action' => AppointmentStatusHistory::ACTION_STATUS_CHANGED,
+                        'from_status' => $fromAppointmentStatus,
+                        'to_status' => Appointment::STATUS_IN_PROGRESS,
+                        'reason' => 'Bat dau phien kham (UC12)',
+                        'metadata' => ['examination_id' => $existing->id, 'examination_code' => $existing->code],
+                        'actor_id' => $actor->id,
+                        'actor_name' => $actor->name,
+                        'created_at' => $now,
+                    ]);
+
+                    $this->writeHistory($existing, 'start', $actor, ['status' => ExaminationSession::STATUS_CHO_KHAM], [
+                        'status' => ExaminationSession::STATUS_DANG_KHAM,
+                    ], 'Bat dau phien kham');
+
+                    $this->auditLog->log($actor, 'examination.start', [
+                        'examination_id' => $existing->id,
+                        'appointment_id' => $appointment->id,
+                    ]);
+
+                    return $existing->fresh();
+                }
+
                 // Idempotent - resume thay vi bao loi.
                 if (in_array($existing->status, [
                     ExaminationSession::STATUS_DANG_KHAM,

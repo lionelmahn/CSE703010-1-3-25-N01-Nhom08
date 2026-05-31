@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ExaminationServiceItem;
 use App\Models\ExaminationSession;
+use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\InvoiceAdjustment;
 use App\Models\InvoiceItem;
@@ -83,7 +84,7 @@ class InvoiceService
             $invoice->patient_phone_snapshot = $session->patient?->phone;
             $invoice->doctor_id = $session->doctor_id;
             $invoice->exam_date = $session->completed_at ?? $now;
-            $invoice->branch_id = $session->appointment?->branch_id;
+            $invoice->branch_id = $this->resolveInvoiceBranchId($session->appointment?->branch_id);
             $invoice->subtotal = $subtotal;
             $invoice->discount_amount = 0;
             $invoice->surcharge_amount = 0;
@@ -402,5 +403,19 @@ class InvoiceService
         }
 
         return trim(strip_tags($text));
+    }
+
+    private function resolveInvoiceBranchId(?string $branchRef): ?int
+    {
+        if ($branchRef === null || $branchRef === '') {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->where('code', $branchRef)
+            ->orWhere('id', ctype_digit($branchRef) ? (int) $branchRef : 0)
+            ->first(['id']);
+
+        return $branch?->id;
     }
 }

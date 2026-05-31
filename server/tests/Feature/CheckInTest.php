@@ -5,9 +5,16 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\AppointmentQueueEntry;
 use App\Models\AppointmentStatusHistory;
+use App\Models\Branch;
+use App\Models\ExaminationServiceItem;
+use App\Models\ExaminationSession;
+use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\Role;
+use App\Models\Service;
+use App\Models\Staff;
 use App\Models\User;
+use App\Models\WorkSchedule;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,6 +98,190 @@ class CheckInTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.queue_entry.bucket', AppointmentQueueEntry::BUCKET_WAITING);
+    }
+
+    public function test_check_in_with_assigned_doctor_creates_waiting_examination_session(): void
+    {
+        Sanctum::actingAs($this->createReceptionist());
+
+        $doctor = $this->createDoctor();
+        $appointment = $this->createAppointment([
+            'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+            'assigned_doctor_id' => $doctor->id,
+        ]);
+
+        $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
+
+        $session = ExaminationSession::query()->where('appointment_id', $appointment->id)->firstOrFail();
+
+        $this->assertSame(ExaminationSession::STATUS_CHO_KHAM, $session->status);
+        $this->assertSame($appointment->patient_id, $session->patient_id);
+        $this->assertSame($doctor->id, $session->doctor_id);
+        $this->assertNotNull($session->queue_entry_id);
+        $this->assertDatabaseHas('examination_histories', [
+            'examination_id' => $session->id,
+            'action' => 'created_from_checkin',
+        ]);
+    }
+
+    public function test_check_in_does_not_create_duplicate_examination_session_when_one_exists(): void
+    {
+        Sanctum::actingAs($this->createReceptionist());
+
+        $doctor = $this->createDoctor();
+        $appointment = $this->createAppointment([
+            'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+            'assigned_doctor_id' => $doctor->id,
+        ]);
+
+        $existing = ExaminationSession::create([
+            'code' => 'BA-'.now()->format('Y').'-000123',
+            'patient_id' => $appointment->patient_id,
+            'appointment_id' => $appointment->id,
+            'doctor_id' => $doctor->id,
+            'status' => ExaminationSession::STATUS_CHO_KHAM,
+            'created_by' => $doctor->id,
+            'updated_by' => $doctor->id,
+        ]);
+
+        $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
+
+        $this->assertSame(1, ExaminationSession::query()->where('appointment_id', $appointment->id)->count());
+        $this->assertNotNull($existing->fresh()->queue_entry_id);
+    }
+
+    public function test_waiting_worklist_returns_checked_in_examination_session(): void
+    {
+        $doctor = $this->createDoctor();
+        Sanctum::actingAs($this->createReceptionist());
+
+        $appointment = $this->createAppointment([
+            'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+            'assigned_doctor_id' => $doctor->id,
+        ]);
+        $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
+        $session = ExaminationSession::query()->where('appointment_id', $appointment->id)->firstOrFail();
+
+        Sanctum::actingAs($doctor);
+        $response = $this->getJson('/api/medical-records/worklist?tab=waiting');
+
+        $response->assertOk()
+            ->assertJsonPath('counts.waiting', 1)
+            ->assertJsonPath('data.0.id', $session->id)
+            ->assertJsonPath('data.0.status', ExaminationSession::STATUS_CHO_KHAM);
+    }
+
+    public function test_start_examination_from_waiting_session_marks_appointment_and_queue_in_progress(): void
+    {
+        $doctor = $this->createDoctor();
+        Sanctum::actingAs($this->createReceptionist());
+
+        $appointment = $this->createAppointment([
+            'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+            'assigned_doctor_id' => $doctor->id,
+        ]);
+        $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
+
+        Sanctum::actingAs($doctor);
+        $response = $this->postJson('/api/examinations/start', [
+            'appointment_id' => $appointment->id,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.status', ExaminationSession::STATUS_DANG_KHAM);
+
+        $this->assertDatabaseHas('appointments', [
+            'id' => $appointment->id,
+            'status' => Appointment::STATUS_IN_PROGRESS,
+        ]);
+        $this->assertDatabaseHas('appointment_queue_entries', [
+            'appointment_id' => $appointment->id,
+            'bucket' => AppointmentQueueEntry::BUCKET_IN_PROGRESS,
+        ]);
+        $this->assertDatabaseHas('examination_histories', [
+            'examination_id' => $response->json('data.id'),
+            'action' => 'start',
+        ]);
+    }
+
+    public function test_reassign_after_check_in_syncs_waiting_examination_doctor(): void
+    {
+        $doctor = $this->createDoctor();
+        $newDoctor = $this->createDoctor();
+        Sanctum::actingAs($this->createReceptionist());
+
+        $appointment = $this->createAppointment([
+            'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+            'assigned_doctor_id' => $doctor->id,
+        ]);
+        $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
+        $session = ExaminationSession::query()->where('appointment_id', $appointment->id)->firstOrFail();
+
+        Sanctum::actingAs($this->createAdmin());
+        $this->postJson("/api/appointments/{$appointment->id}/reassign-doctor", [
+            'doctor_id' => $newDoctor->id,
+            'reason' => 'Doi bac si sau check-in',
+        ])->assertOk();
+
+        $this->assertSame($newDoctor->id, $session->fresh()->doctor_id);
+    }
+
+    public function test_complete_started_examination_creates_pending_invoice(): void
+    {
+        $doctor = $this->createDoctor();
+        $branch = Branch::create([
+            'code' => 'PK1-HN',
+            'name' => 'Phong kham test',
+            'status' => 'active',
+        ]);
+        Sanctum::actingAs($this->createReceptionist());
+
+        $appointment = $this->createAppointment([
+            'status' => Appointment::STATUS_DOCTOR_ASSIGNED,
+            'assigned_doctor_id' => $doctor->id,
+        ]);
+        $this->postJson("/api/appointments/{$appointment->id}/check-in", [])->assertOk();
+
+        Sanctum::actingAs($doctor);
+        $startResponse = $this->postJson('/api/examinations/start', [
+            'appointment_id' => $appointment->id,
+        ])->assertCreated();
+
+        $session = ExaminationSession::findOrFail($startResponse->json('data.id'));
+        $session->forceFill([
+            'chief_complaint' => 'Dau rang',
+            'diagnosis' => 'Sau rang',
+            'conclusion' => 'Can tram rang',
+        ])->save();
+
+        $service = $this->createService();
+        ExaminationServiceItem::create([
+            'examination_id' => $session->id,
+            'service_id' => $service->id,
+            'service_code_snapshot' => $service->service_code,
+            'service_name_snapshot' => $service->name,
+            'processing_level' => ExaminationServiceItem::LEVEL_THONG_THUONG,
+            'complexity_coefficient' => 0,
+            'unit_price_snapshot' => 250000,
+            'quantity' => 1,
+            'subtotal_snapshot' => 250000,
+            'performed_by' => $doctor->id,
+        ]);
+
+        $this->postJson("/api/examinations/{$session->id}/complete", [
+            'completion_note' => 'Da hoan tat',
+        ])->assertOk()
+            ->assertJsonPath('data.status', ExaminationSession::STATUS_CHO_THANH_TOAN);
+
+        $invoice = Invoice::query()->where('examination_id', $session->id)->firstOrFail();
+        $this->assertSame(Invoice::STATUS_PENDING, $invoice->status);
+        $this->assertSame($branch->id, $invoice->branch_id);
+        $this->assertSame(250000.0, (float) $invoice->total);
+
+        Sanctum::actingAs($this->createAdmin());
+        $this->getJson("/api/billing/queue?tab=pending&examinationId={$session->id}")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $invoice->id);
     }
 
     public function test_check_in_rejected_when_status_already_checked_in(): void
@@ -369,6 +560,19 @@ class CheckInTest extends TestCase
         ], $overrides));
     }
 
+    private function createService(array $overrides = []): Service
+    {
+        return Service::create(array_merge([
+            'service_code' => 'SV'.random_int(100000, 999999),
+            'name' => 'Dich vu test '.uniqid(),
+            'price' => 250000,
+            'commission_rate' => 10,
+            'duration_minutes' => 30,
+            'status' => Service::STATUS_ACTIVE,
+            'visibility' => Service::VISIBILITY_INTERNAL,
+        ], $overrides));
+    }
+
     private function createReceptionist(): User
     {
         $user = User::factory()->create([
@@ -404,6 +608,25 @@ class CheckInTest extends TestCase
             'password' => Hash::make('Password@123'),
         ]);
         $user->roles()->attach(Role::where('slug', 'bac_si')->firstOrFail()->id);
+
+        $staff = Staff::create([
+            'employee_code' => 'BS'.random_int(100000, 999999),
+            'full_name' => $user->name,
+            'phone' => '08'.random_int(10000000, 99999999),
+            'email' => $user->email,
+            'status' => 'working',
+            'role_slug' => 'bac_si',
+            'user_id' => $user->id,
+        ]);
+
+        WorkSchedule::create([
+            'staff_id' => $staff->id,
+            'work_date' => now()->toDateString(),
+            'start_time' => '08:00:00',
+            'end_time' => '18:00:00',
+            'work_role' => 'doctor_treatment',
+            'status' => WorkSchedule::STATUS_CONFIRMED,
+        ]);
 
         return $user;
     }

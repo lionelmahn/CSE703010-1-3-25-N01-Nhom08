@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Activity, FileEdit, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Activity, FileEdit, CheckCircle2, Clock3 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { medicalRecordsApi } from '@/api/medicalRecordsApi';
 import useMedicalRecordWorklist from '@/features/medical-records/hooks/useMedicalRecordWorklist';
 import WorklistTable from '@/features/medical-records/components/WorklistTable';
 import WorklistFilters from '@/features/medical-records/components/WorklistFilters';
@@ -17,6 +18,7 @@ import WorklistFilters from '@/features/medical-records/components/WorklistFilte
  * Mo mot dong dieu huong sang /medical-records/{id}/workspace.
  */
 const TAB_DEFS = [
+  { key: 'waiting', label: 'Chờ khám', icon: Clock3 },
   { key: 'in_progress', label: 'Đang khám', icon: Activity },
   { key: 'draft', label: 'Bản nháp', icon: FileEdit },
   { key: 'completed', label: 'Đã hoàn tất', icon: CheckCircle2 },
@@ -35,8 +37,24 @@ export default function MedicalRecords() {
     [navigate],
   );
 
+  const handleStart = useCallback(
+    async (row) => {
+      const appointmentId = row?.appointment?.id;
+      if (!appointmentId) return;
+      const response = await medicalRecordsApi.start(appointmentId);
+      const session = response?.data;
+      if (session?.id) {
+        navigate(`/medical-records/${session.id}/workspace`);
+      } else {
+        refresh();
+      }
+    },
+    [navigate, refresh],
+  );
+
   const tabBadge = useMemo(
     () => ({
+      waiting: counts.waiting ?? 0,
       in_progress: counts.in_progress ?? 0,
       draft: counts.draft ?? 0,
       completed: (counts.pending_payment ?? 0) + (counts.completed ?? 0),
@@ -93,14 +111,17 @@ export default function MedicalRecords() {
             </div>
           ) : null}
 
+          <TabsContent value="waiting" className="mt-0">
+            <WorklistTable items={items} loading={loading} onOpen={handleOpen} onStart={handleStart} />
+          </TabsContent>
           <TabsContent value="in_progress" className="mt-0">
-            <WorklistTable items={items} loading={loading} onOpen={handleOpen} />
+            <WorklistTable items={items} loading={loading} onOpen={handleOpen} onStart={handleStart} />
           </TabsContent>
           <TabsContent value="draft" className="mt-0">
-            <WorklistTable items={items} loading={loading} onOpen={handleOpen} />
+            <WorklistTable items={items} loading={loading} onOpen={handleOpen} onStart={handleStart} />
           </TabsContent>
           <TabsContent value="completed" className="mt-0">
-            <WorklistTable items={items} loading={loading} onOpen={handleOpen} />
+            <WorklistTable items={items} loading={loading} onOpen={handleOpen} onStart={handleStart} />
           </TabsContent>
         </Tabs>
 

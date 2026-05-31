@@ -1,6 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { setToken, removeToken, getToken } from '@/service/authService';
+import axiosClient from '@/api/axiosClient';
 import AuthContext from './AuthContextCore';
+
+const normalizeUser = (userData) => ({
+  id: userData.id,
+  email: userData.email,
+  role: userData.role,
+  name: userData.name,
+  permissions: userData.permission_slugs || userData.permissions || [],
+});
 
 export const AuthProvider = ({ children }) => {
   // Khôi phục trạng thái từ localStorage khi load trang
@@ -13,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback((token, userData) => {
     setToken(token);
     const userInfo = {
+      id: userData.id,
       email: userData.email,
       role: userData.role,
       name: userData.name,
@@ -23,6 +33,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Đăng xuất — Xóa tất cả
+  useEffect(() => {
+    if (!getToken() || !user || user.id) return;
+
+    let cancelled = false;
+    axiosClient.get('/user')
+      .then((response) => {
+        if (cancelled) return;
+        const userInfo = normalizeUser(response.data || {});
+        setUser(userInfo);
+        localStorage.setItem('user', JSON.stringify(userInfo));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        removeToken();
+        localStorage.removeItem('user');
+        setUser(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   const logout = useCallback(() => {
     removeToken();
     localStorage.removeItem('user');
