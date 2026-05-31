@@ -241,6 +241,8 @@ const Appointments = () => {
                 setView={calendar.setView}
                 date={calendar.date}
                 shift={calendar.shift}
+                onPrevious={calendar.goPrevious}
+                onNext={calendar.goNext}
                 goToday={calendar.goToday}
                 branches={branches}
                 branchId={calendar.branchId}
