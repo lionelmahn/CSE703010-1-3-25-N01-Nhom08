@@ -61,6 +61,61 @@ class DoctorAvailabilityServiceTest extends TestCase
         $this->assertTrue($result['ok'], json_encode($result, JSON_UNESCAPED_UNICODE));
     }
 
+    public function test_service_code_matches_specialty_scope_stored_as_service_name(): void
+    {
+        [$doctor, $branch, $service] = $this->createScheduledDoctor();
+        $this->setDoctorServiceScope($doctor, [$service->name]);
+        $appointment = $this->createAppointment((string) $branch->id, [$service->service_code]);
+
+        $result = app(DoctorAvailabilityService::class)
+            ->validateAssignment($doctor->id, $appointment);
+
+        $this->assertTrue($result['ok'], json_encode($result, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_numeric_service_id_matches_specialty_scope_stored_as_service_name(): void
+    {
+        [$doctor, $branch, $service] = $this->createScheduledDoctor();
+        $this->setDoctorServiceScope($doctor, [$service->name]);
+        $appointment = $this->createAppointment((string) $branch->id, [(string) $service->id]);
+
+        $result = app(DoctorAvailabilityService::class)
+            ->validateAssignment($doctor->id, $appointment);
+
+        $this->assertTrue($result['ok'], json_encode($result, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_slot_11_to_12_requires_schedule_covering_full_slot(): void
+    {
+        [$doctor, $branch, $service] = $this->createScheduledDoctor();
+        $staff = $doctor->staff()->firstOrFail();
+        $appointment = $this->createAppointment((string) $branch->id, [(string) $service->id], '11-12');
+
+        $blocked = app(DoctorAvailabilityService::class)
+            ->validateAssignment($doctor->id, $appointment);
+
+        $this->assertFalse($blocked['ok']);
+        $this->assertSame(
+            'VR4: Bac si khong co lich lam viec phu hop voi gio/chi nhanh nay.',
+            $blocked['errors']['doctor_id'] ?? null,
+        );
+
+        WorkSchedule::create([
+            'staff_id' => $staff->id,
+            'branch_id' => $branch->id,
+            'work_date' => '2026-06-01',
+            'start_time' => '11:00:00',
+            'end_time' => '12:00:00',
+            'work_role' => 'doctor_treatment',
+            'status' => WorkSchedule::STATUS_SCHEDULED,
+        ]);
+
+        $allowed = app(DoctorAvailabilityService::class)
+            ->validateAssignment($doctor->id, $appointment);
+
+        $this->assertTrue($allowed['ok'], json_encode($allowed, JSON_UNESCAPED_UNICODE));
+    }
+
     private function createScheduledDoctor(): array
     {
         $branch = Branch::create([
@@ -113,7 +168,15 @@ class DoctorAvailabilityServiceTest extends TestCase
         return [$user, $branch, $service];
     }
 
-    private function createAppointment(string $branchRef, array $serviceIds): Appointment
+    private function setDoctorServiceScope(User $doctor, array $scope): void
+    {
+        $staff = $doctor->staff()->firstOrFail();
+        ProfessionalProfileSpecialty::query()
+            ->whereHas('profile', fn ($q) => $q->where('staff_id', $staff->id))
+            ->update(['service_scope' => $scope]);
+    }
+
+    private function createAppointment(string $branchRef, array $serviceIds, string $timeSlot = '09-10'): Appointment
     {
         $patient = Patient::create([
             'patient_code' => Patient::generateCode(),
@@ -127,7 +190,7 @@ class DoctorAvailabilityServiceTest extends TestCase
             'code' => Appointment::generateCode(),
             'patient_id' => $patient->id,
             'appointment_date' => '2026-06-01',
-            'time_slot' => '09-10',
+            'time_slot' => $timeSlot,
             'source' => Appointment::SOURCE_ONLINE,
             'service_ids' => $serviceIds,
             'branch_id' => $branchRef,

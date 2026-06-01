@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\ProfessionalProfileController;
 use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ReceptionController;
 use App\Http\Controllers\Api\RefundController;
+use App\Http\Controllers\Api\RevenueReportController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServicePackageController;
@@ -372,6 +373,22 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:payments.refund')->group(function () {
         Route::post('/invoices/{id}/refunds', [RefundController::class, 'store'])->whereNumber('id');
+    });
+
+    // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.
+    Route::middleware('permission:reports.view')->prefix('reports/revenue')->group(function () {
+        Route::get('/options', [RevenueReportController::class, 'options']);
+        Route::get('/summary', [RevenueReportController::class, 'summary']);
+        Route::get('/trend', [RevenueReportController::class, 'trend']);
+        Route::get('/by-branch', [RevenueReportController::class, 'byBranch']);
+        Route::get('/by-doctor', [RevenueReportController::class, 'byDoctor']);
+        Route::get('/by-service', [RevenueReportController::class, 'byService']);
+        Route::get('/by-method', [RevenueReportController::class, 'byMethod']);
+        Route::get('/details', [RevenueReportController::class, 'details']);
+        Route::get('/debt-summary', [RevenueReportController::class, 'debtSummary']);
+        Route::get('/debt-list', [RevenueReportController::class, 'debtList']);
+        Route::get('/export', [RevenueReportController::class, 'export'])
+            ->middleware('permission:reports.export');
     });
 
     // UC10 - Quan ly thong bao lich hen.

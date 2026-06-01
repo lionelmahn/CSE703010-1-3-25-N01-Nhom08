@@ -295,6 +295,15 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($accountantBillingSlugs);
         }
 
+        // UC14 - Ke toan xem va xuat bao cao doanh thu.
+        $accountantReportSlugs = Permission::whereIn('slug', [
+            'reports.view',
+            'reports.export',
+        ])->pluck('id')->all();
+        if ($accountantRole && ! empty($accountantReportSlugs)) {
+            $accountantRole->permissions()->syncWithoutDetaching($accountantReportSlugs);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

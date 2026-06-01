@@ -450,8 +450,8 @@ class DoctorAvailabilityService
             return 'no_config';
         }
 
-        $resolvedServiceIds = $this->resolveServiceIds($serviceIds);
-        if (empty($resolvedServiceIds)) {
+        $resolvedServiceRefs = $this->resolveServiceRefs($serviceIds);
+        if (empty($resolvedServiceRefs)) {
             // Bac si co cau hinh chuyen mon nhung lich hen khong chon dich vu
             // hoac service legacy/other khong resolve duoc -> khong du thong
             // tin de loai theo VR7.
@@ -463,9 +463,11 @@ class DoctorAvailabilityService
             if (! is_array($scope) || empty($scope)) {
                 continue;
             }
-            $scopeInt = array_map('intval', $scope);
-            if (! empty(array_intersect($resolvedServiceIds, $scopeInt))) {
-                return 'match';
+            foreach ($scope as $item) {
+                $scopeRef = $this->normalizeServiceRef($item);
+                if ($scopeRef !== null && in_array($scopeRef, $resolvedServiceRefs, true)) {
+                    return 'match';
+                }
             }
         }
 
@@ -474,33 +476,65 @@ class DoctorAvailabilityService
 
     /**
      * Appointment service refs can come from old landing-page mock values,
-     * service codes, or numeric ids. Only resolved real service ids can be used
-     * for specialty matching; unresolved refs such as "other" are treated as
-     * no specialty signal.
+     * service codes, numeric ids, or service names. Professional profile
+     * service_scope can also be stored as either service ids (full form) or
+     * service names (wizard), so a resolved service contributes all stable
+     * aliases to the comparison set. Unresolved refs such as "other" are
+     * treated as no specialty signal.
      *
-     * @return array<int, int>
+     * @return array<int, string>
      */
-    protected function resolveServiceIds(array $serviceRefs): array
+    protected function resolveServiceRefs(array $serviceRefs): array
     {
         $resolved = [];
         foreach ($serviceRefs as $ref) {
-            if ($ref === null || $ref === '') {
+            $key = $this->serviceRefValue($ref);
+            if ($key === null) {
                 continue;
             }
-            $key = (string) $ref;
-            if (ctype_digit($key) && Service::query()->where('id', (int) $key)->exists()) {
-                $resolved[] = (int) $key;
-                continue;
-            }
-            $service = Service::query()
+
+            $serviceQuery = Service::query()
                 ->where('service_code', $key)
-                ->first(['id']);
+                ->orWhere('name', $key);
+
+            if (ctype_digit($key)) {
+                $serviceQuery->orWhere('id', (int) $key);
+            }
+
+            $service = $serviceQuery->first(['id', 'service_code', 'name']);
             if ($service) {
-                $resolved[] = (int) $service->id;
+                $resolved[] = $this->normalizeServiceRef($service->id);
+                $resolved[] = $this->normalizeServiceRef($service->service_code);
+                $resolved[] = $this->normalizeServiceRef($service->name);
             }
         }
 
-        return array_values(array_unique($resolved));
+        return array_values(array_unique(array_filter($resolved)));
+    }
+
+    protected function serviceRefValue(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            foreach (['id', 'service_code', 'code', 'name', 'value', 'label'] as $key) {
+                if (array_key_exists($key, $value)) {
+                    $value = $value[$key];
+                    break;
+                }
+            }
+        }
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        return $value === '' ? null : $value;
+    }
+
+    protected function normalizeServiceRef(mixed $value): ?string
+    {
+        $value = $this->serviceRefValue($value);
+        return $value === null ? null : mb_strtolower($value);
     }
 
     protected function primarySpecialtyName(User $user): ?string
