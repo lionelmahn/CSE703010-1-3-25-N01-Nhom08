@@ -47,6 +47,7 @@ export const createEmptyCertificate = () => ({
 
 export const createEmptyProfileForm = () => ({
   id: undefined,
+  staff: null,
   staff_id: '',
   profile_role: '',
   status: 'draft',
@@ -77,6 +78,7 @@ export const mapProfileToForm = (profile) => {
 
   return {
     id: profile.id,
+    staff: profile.staff || null,
     staff_id: String(profile.staff_id || profile.staff?.id || ''),
     profile_role: profile.profile_role || '',
     status: profile.status || 'draft',
@@ -114,20 +116,24 @@ export const buildProfileFormData = (form, { selfService = false } = {}) => {
   if (!selfService) {
     data.append('staff_id', form.staff_id);
     data.append('profile_role', form.profile_role);
-    data.append('status', form.status || 'draft');
+    if (form.status !== undefined && form.status !== null && form.status !== '') {
+      data.append('status', form.status);
+    }
   }
 
   data.append('notes', form.notes || '');
-  if (form.degree !== undefined && form.degree !== null && form.degree !== '') {
-    data.append('degree', form.degree);
+  if (!selfService) {
+    if (form.degree !== undefined && form.degree !== null && form.degree !== '') {
+      data.append('degree', form.degree);
+    }
+    if (form.years_experience !== undefined && form.years_experience !== null && form.years_experience !== '') {
+      data.append('years_experience', String(form.years_experience));
+    }
+    if (form.branch_id) {
+      data.append('branch_id', String(form.branch_id));
+    }
+    data.append('service_scope_payload', JSON.stringify(form.service_scope || []));
   }
-  if (form.years_experience !== undefined && form.years_experience !== null && form.years_experience !== '') {
-    data.append('years_experience', String(form.years_experience));
-  }
-  if (form.branch_id) {
-    data.append('branch_id', String(form.branch_id));
-  }
-  data.append('service_scope_payload', JSON.stringify(form.service_scope || []));
   data.append('specialties_payload', JSON.stringify(form.specialties || []));
   data.append(
     'certificates_payload',
@@ -150,7 +156,12 @@ export const buildProfileFormData = (form, { selfService = false } = {}) => {
   );
 
   (form.certificates || []).forEach((certificate, index) => {
-    if (certificate.file instanceof File) {
+    const isFileLike =
+      certificate.file &&
+      typeof certificate.file === 'object' &&
+      typeof certificate.file.name === 'string' &&
+      typeof certificate.file.size === 'number';
+    if (isFileLike) {
       data.append(`certificate_files[${index}]`, certificate.file);
     }
   });

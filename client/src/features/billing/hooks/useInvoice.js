@@ -14,11 +14,15 @@ export default function useInvoice(invoiceId) {
   const refresh = useCallback(async () => {
     if (!invoiceId) {
       setInvoice(null);
+      setMeta({});
+      setError(null);
       return;
     }
     const id = ++reqId.current;
     setLoading(true);
     setError(null);
+    setInvoice(null);
+    setMeta({});
     try {
       const res = await billingApi.show(invoiceId);
       if (id !== reqId.current) return;
@@ -26,6 +30,8 @@ export default function useInvoice(invoiceId) {
       setMeta({ amount_in_words: res?.data?.amount_in_words });
     } catch (err) {
       if (id !== reqId.current) return;
+      setInvoice(null);
+      setMeta({});
       setError(err?.response?.data?.message || err?.message || 'Khong the tai hoa don.');
     } finally {
       if (id === reqId.current) setLoading(false);

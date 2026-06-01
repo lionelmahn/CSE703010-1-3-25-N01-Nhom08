@@ -44,7 +44,13 @@ export default function InvoiceManagement() {
   const [selectedId, setSelectedId] = useState(params.id ? Number(params.id) : null);
   const [view, setView] = useState('queue'); // queue | dashboard | audit
   const invoiceHook = useInvoice(selectedId);
-  const { invoice: selectedInvoice, meta: invoiceMeta, loading: invoiceLoading, refresh: refreshInvoice } = invoiceHook;
+  const {
+    invoice: selectedInvoice,
+    meta: invoiceMeta,
+    loading: invoiceLoading,
+    error: invoiceError,
+    refresh: refreshInvoice,
+  } = invoiceHook;
 
   const dashboardHook = useBillingDashboard({ pollMs: 0 });
   const auditHook = useBillingAuditLogs();
@@ -267,6 +273,7 @@ export default function InvoiceManagement() {
               invoice={selectedInvoice}
               meta={invoiceMeta}
               loading={invoiceLoading}
+              error={invoiceError}
               can={can}
               onOpenPay={() => setPayOpen(true)}
               onOpenDiscount={() => setDiscountOpen(true)}

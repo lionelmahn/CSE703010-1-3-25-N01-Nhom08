@@ -175,6 +175,13 @@ class ProfessionalProfileService
 
             if (! $selfService && isset($payload['status']) && in_array($payload['status'], [ProfessionalProfile::STATUS_DRAFT, ProfessionalProfile::STATUS_PENDING], true)) {
                 $profile->status = $payload['status'];
+                if ($payload['status'] === ProfessionalProfile::STATUS_PENDING) {
+                    $profile->submitted_at = now();
+                    $profile->rejection_reason = null;
+                    $profile->approved_at = null;
+                    $profile->approved_by = null;
+                    $profile->is_active = true;
+                }
             }
 
             if ($selfService) {
@@ -355,7 +362,9 @@ class ProfessionalProfileService
         $allowed = [
             'notes',
             'specialties',
+            'specialties_payload',
             'certificates',
+            'certificates_payload',
             'certificate_files',
             '_method',
         ];
@@ -625,7 +634,7 @@ class ProfessionalProfileService
 
         $clean = collect($value)
             ->map(fn ($item) => is_array($item) ? Arr::get($item, 'name') ?? Arr::get($item, 'value') : $item)
-            ->map(fn ($item) => is_string($item) ? trim($item) : null)
+            ->map(fn ($item) => is_scalar($item) ? trim((string) $item) : null)
             ->filter()
             ->unique()
             ->values()

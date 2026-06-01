@@ -51,7 +51,6 @@ const CalendarHeader = ({
   setDoctorId,
   status,
   setStatus,
-  loading,
 }) => {
   const handlePrevious = () => {
     if (onPrevious) onPrevious();

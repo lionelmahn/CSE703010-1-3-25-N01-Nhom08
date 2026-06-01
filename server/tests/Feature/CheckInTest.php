@@ -282,6 +282,14 @@ class CheckInTest extends TestCase
         $this->getJson("/api/billing/queue?tab=pending&examinationId={$session->id}")
             ->assertOk()
             ->assertJsonPath('data.0.id', $invoice->id);
+
+        $this->getJson("/api/invoices/{$invoice->id}")
+            ->assertOk()
+            ->assertJsonPath('data.invoice.id', $invoice->id)
+            ->assertJsonPath('data.invoice.items.0.invoice_id', $invoice->id)
+            ->assertJsonStructure([
+                'data' => ['invoice', 'amount_in_words'],
+            ]);
     }
 
     public function test_check_in_rejected_when_status_already_checked_in(): void

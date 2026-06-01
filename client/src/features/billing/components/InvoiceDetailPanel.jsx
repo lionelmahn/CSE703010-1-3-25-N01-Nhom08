@@ -16,16 +16,20 @@ import { formatDateTime, formatDate } from '../lib/format';
  * Slots actions su dung permission cua user de show/hide.
  */
 export default function InvoiceDetailPanel({
-  invoice, meta = {}, loading, can = {},
+  invoice, meta = {}, loading, error, can = {},
   onOpenPay, onOpenDiscount, onOpenSurcharge, onOpenAdjust,
   onOpenCancel, onOpenRefund, onOpenReceipt, onPrint, onRefresh, onBack,
 }) {
   const [tab, setTab] = useState('overview');
 
   if (!invoice) {
+    const message = loading
+      ? 'Đang tải hóa đơn...'
+      : error || 'Chọn một hóa đơn ở danh sách bên trái để xem chi tiết.';
+
     return (
-      <div className="flex h-full items-center justify-center text-sm text-slate-500">
-        {loading ? 'Đang tải hóa đơn...' : 'Chọn một hóa đơn ở danh sách bên trái để xem chi tiết.'}
+      <div className={`flex h-full items-center justify-center px-4 text-center text-sm ${error ? 'text-rose-600' : 'text-slate-500'}`}>
+        {message}
       </div>
     );
   }

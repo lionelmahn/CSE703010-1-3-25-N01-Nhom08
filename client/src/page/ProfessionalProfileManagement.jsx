@@ -119,8 +119,7 @@ export default function ProfessionalProfileManagement() {
   useEffect(() => {
     if (!openWizard) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadOptions().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadOptions().catch(() => { });
   }, [openWizard]);
 
   useEffect(() => {
@@ -142,6 +141,7 @@ export default function ProfessionalProfileManagement() {
   }, [profiles]);
 
   const openCreateForm = () => {
+    setForm(createEmptyProfileForm());
     setOpenWizard(true);
   };
 
@@ -149,7 +149,7 @@ export default function ProfessionalProfileManagement() {
     try {
       const response = await professionalProfileApi.getById(profile.id);
       setForm(mapProfileToForm(response.data));
-      setOpenForm(true);
+      setOpenWizard(true);
     } catch {
       toast({ variant: 'destructive', title: 'Lỗi', description: 'Không thể tải chi tiết hồ sơ.' });
     }
@@ -211,12 +211,20 @@ export default function ProfessionalProfileManagement() {
     setSubmittingWizard(true);
     try {
       const formData = buildProfileFormData(wizardForm);
-      await professionalProfileApi.create(formData);
-      toast({ title: 'Thành công', description: 'Đã tạo hồ sơ chuyên môn mới.' });
+      if (wizardForm.id) {
+        await professionalProfileApi.update(wizardForm.id, formData);
+        toast({ title: 'Thanh cong', description: 'Da cap nhat ho so chuyen mon.' });
+      } else {
+        await professionalProfileApi.create(formData);
+        toast({ title: 'Thành công', description: 'Đã tạo hồ sơ chuyên môn mới.' });
+      }
       setOpenWizard(false);
       // Tải lại cả danh sách hồ sơ lẫn danh sách nhân sự chưa có hồ sơ
-      loadProfiles(1);
-      loadOptions().catch(() => {});
+      loadProfiles(wizardForm.id ? currentPage : 1);
+      if (selectedProfile?.id && wizardForm.id === selectedProfile.id) {
+        loadProfileDetail(selectedProfile.id);
+      }
+      loadOptions().catch(() => { });
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -478,6 +486,8 @@ export default function ProfessionalProfileManagement() {
         branches={branches}
         services={services}
         degrees={degrees}
+        isEdit={Boolean(form.id)}
+        initialForm={form}
         submitting={submittingWizard}
         onClose={() => setOpenWizard(false)}
         onSubmit={handleWizardSubmit}
@@ -528,13 +538,13 @@ export default function ProfessionalProfileManagement() {
             certificates: prev.certificates.map((certificate, itemIndex) =>
               itemIndex === index
                 ? {
-                    ...certificate,
-                    [field]: value === 'general' ? '' : value,
-                    professional_profile_specialty_id:
-                      field === 'specialty_client_key'
-                        ? null
-                        : certificate.professional_profile_specialty_id,
-                  }
+                  ...certificate,
+                  [field]: value === 'general' ? '' : value,
+                  professional_profile_specialty_id:
+                    field === 'specialty_client_key'
+                      ? null
+                      : certificate.professional_profile_specialty_id,
+                }
                 : certificate
             ),
           }))

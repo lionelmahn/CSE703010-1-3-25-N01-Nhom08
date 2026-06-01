@@ -161,6 +161,71 @@ class ProfessionalProfileTest extends TestCase
         $this->post("/api/professional-profiles/{$profile->id}/approve")->assertStatus(422);
     }
 
+    public function test_admin_update_approved_profile_to_pending_keeps_existing_certificate_file(): void
+    {
+        $admin = $this->createAdmin();
+        $profile = $this->createProfileWithCertificate(now()->addYear()->toDateString());
+        $profile->update([
+            'status' => ProfessionalProfile::STATUS_APPROVED,
+            'approved_at' => now(),
+            'approved_by' => $admin->id,
+        ]);
+        $specialty = $profile->specialties()->firstOrFail();
+        $certificate = $profile->certificates()->firstOrFail();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->post("/api/professional-profiles/{$profile->id}", [
+            'staff_id' => $profile->staff_id,
+            'profile_role' => 'bac_si',
+            'status' => 'pending',
+            'notes' => 'Cap nhat pham vi chuyen mon',
+            'degree' => 'thac_si',
+            'years_experience' => 9,
+            'service_scope_payload' => json_encode([(string) 1, 'Kham tong quat']),
+            'specialties_payload' => json_encode([
+                [
+                    'id' => $specialty->id,
+                    'specialty_name' => 'Ngoai nha nang cao',
+                    'degree' => 'thac_si',
+                    'years_experience' => 9,
+                    'service_scope' => [(string) 1],
+                    'branch_or_room' => 'Co so A',
+                    'notes' => 'Cap nhat tu wizard',
+                ],
+            ]),
+            'certificates_payload' => json_encode([
+                [
+                    'id' => $certificate->id,
+                    'certificate_type' => $certificate->certificate_type,
+                    'certificate_name' => $certificate->certificate_name,
+                    'certificate_number' => $certificate->certificate_number,
+                    'issued_date' => $certificate->issued_date?->toDateString(),
+                    'expiry_date' => $certificate->expiry_date?->toDateString(),
+                    'issuer' => 'So Y te',
+                    'scope_label' => 'Ngoai nha',
+                    'professional_profile_specialty_id' => $specialty->id,
+                    'is_primary' => true,
+                ],
+            ]),
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('profile.status', ProfessionalProfile::STATUS_PENDING)
+            ->assertJsonPath('profile.certificates.0.file_name', 'test.pdf');
+
+        $profile->refresh();
+        $this->assertSame(ProfessionalProfile::STATUS_PENDING, $profile->status);
+        $this->assertNotNull($profile->submitted_at);
+        $this->assertNull($profile->approved_at);
+        $this->assertNull($profile->approved_by);
+        $this->assertTrue($profile->is_active);
+        $this->assertDatabaseHas('professional_profile_certificates', [
+            'id' => $certificate->id,
+            'file_name' => 'test.pdf',
+        ]);
+    }
+
     public function test_expire_command_marks_pending_or_approved_profiles_as_expired(): void
     {
         $profile = $this->createProfileWithCertificate(now()->subDay()->toDateString());
