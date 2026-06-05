@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServicePackageController;
 use App\Http\Controllers\Api\ServicePriceController;
 use App\Http\Controllers\Api\ShiftSwapRequestController;
+use App\Http\Controllers\Api\ShiftCoefficientController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\ToothStatusController;
 use App\Http\Controllers\Api\UserController;
@@ -386,6 +387,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:payroll.hourly_rate.manage')->group(function () {
         Route::post('/payroll/hourly-rates', [HourlyRateController::class, 'store']);
         Route::post('/payroll/hourly-rates/{id}/stop', [HourlyRateController::class, 'stop'])->whereNumber('id');
+    });
+
+    // UC16 - Thiết lập hệ số ca làm việc theo loại ngày/loại ca.
+    Route::middleware('permission:payroll.shift_coefficient.view')->group(function () {
+        Route::get('/payroll/shift-coefficients', [ShiftCoefficientController::class, 'index']);
+        Route::get('/payroll/shift-coefficients/effective', [ShiftCoefficientController::class, 'effectiveMatrix']);
+        Route::get('/payroll/shift-coefficients/{id}', [ShiftCoefficientController::class, 'show'])->whereNumber('id');
+        Route::get('/payroll/shift-coefficients/{id}/audit-logs', [ShiftCoefficientController::class, 'auditLogs'])->whereNumber('id');
+    });
+    Route::middleware('permission:payroll.shift_coefficient.manage')->group(function () {
+        Route::post('/payroll/shift-coefficients', [ShiftCoefficientController::class, 'store']);
+        Route::post('/payroll/shift-coefficients/bulk', [ShiftCoefficientController::class, 'bulkStore']);
+        Route::post('/payroll/shift-coefficients/{id}/stop', [ShiftCoefficientController::class, 'stop'])->whereNumber('id');
     });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.

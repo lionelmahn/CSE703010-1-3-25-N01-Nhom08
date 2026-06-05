@@ -324,6 +324,26 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($uc15Ids);
         }
 
+        // UC16 - Thiết lập hệ số ca làm việc theo loại ngày/loại ca.
+        $uc16Slugs = [
+            'payroll.shift_coefficient.view' => 'Xem cấu hình hệ số ca làm việc',
+            'payroll.shift_coefficient.manage' => 'Thiết lập hệ số ca làm việc',
+        ];
+        $uc16Ids = [];
+        foreach ($uc16Slugs as $slug => $name) {
+            $permission = Permission::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc16Ids[] = $permission->id;
+        }
+        if ($adminRole && ! empty($uc16Ids)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc16Ids);
+        }
+        if ($accountantRole && ! empty($uc16Ids)) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc16Ids);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

@@ -10,6 +10,7 @@ import {
   Inbox,
   LayoutDashboard,
   Mail,
+  Percent,
   Settings,
   ShieldCheck,
   Stethoscope,
@@ -204,6 +205,14 @@ export const SIDEBAR_ITEMS = [
     group: 'finance',
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['payroll.hourly_rate.view'],
+  },
+  {
+    label: 'Cấu hình hệ số ca',
+    path: '/payroll/settings/shift-coefficients',
+    icon: Percent,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.shift_coefficient.view'],
   },
 
   // -- Nhân sự ----------------------------------------------------------------
