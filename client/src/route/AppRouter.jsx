@@ -22,6 +22,7 @@ import ProfessionalProfileManagement from '@/page/ProfessionalProfileManagement'
 import ServiceCatalogManagement from '@/page/ServiceCatalogManagement';
 import ServicePackageManagement from '@/page/ServicePackageManagement';
 import ServicePriceManagement from '@/page/ServicePriceManagement';
+import HourlyRateSettings from '@/page/HourlyRateSettings';
 import ToothStatusManagement from '@/page/ToothStatusManagement';
 import SystemSettings from '@/page/SystemSettings';
 import PatientList from '@/page/PatientList';
@@ -112,6 +113,7 @@ const AppRouter = () => {
         <Route path="invoices" element={<PermissionRoute permission="invoices.view"><InvoiceManagement /></PermissionRoute>} />
         <Route path="invoices/:id" element={<PermissionRoute permission="invoices.view"><InvoiceManagement /></PermissionRoute>} />
         <Route path="revenue" element={<PermissionRoute permission="reports.view"><RevenueReport /></PermissionRoute>} />
+        <Route path="payroll/settings/hourly-rate" element={<PermissionRoute permission="payroll.hourly_rate.view"><HourlyRateSettings /></PermissionRoute>} />
         <Route path="my-professional-profile" element={<MyProfessionalProfile />} />
         <Route path="work-schedules" element={<PermissionRoute permission="schedules.view"><WorkScheduleManagement /></PermissionRoute>} />
         <Route path="my-work-schedule" element={<MyWorkSchedule />} />

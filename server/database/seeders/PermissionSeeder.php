@@ -304,6 +304,26 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($accountantReportSlugs);
         }
 
+        // UC15 - Thiet lap muc tien co ban cho mot gio lam viec.
+        $uc15Slugs = [
+            'payroll.hourly_rate.view' => 'Xem cau hinh muc tien co ban theo gio',
+            'payroll.hourly_rate.manage' => 'Thiet lap muc tien co ban theo gio',
+        ];
+        $uc15Ids = [];
+        foreach ($uc15Slugs as $slug => $name) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc15Ids[] = $permission->id;
+        }
+        if ($adminRole && ! empty($uc15Ids)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc15Ids);
+        }
+        if ($accountantRole && ! empty($uc15Ids)) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc15Ids);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

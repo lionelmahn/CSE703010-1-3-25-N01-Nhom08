@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   CreditCard,
+  DollarSign,
   FileText,
   Inbox,
   LayoutDashboard,
@@ -195,6 +196,14 @@ export const SIDEBAR_ITEMS = [
     group: 'finance',
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['reports.view'],
+  },
+  {
+    label: 'Cấu hình lương/giờ',
+    path: '/payroll/settings/hourly-rate',
+    icon: DollarSign,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.hourly_rate.view'],
   },
 
   // -- Nhân sự ----------------------------------------------------------------

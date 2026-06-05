@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\ExaminationController;
+use App\Http\Controllers\Api\HourlyRateController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MyProfessionalProfileController;
@@ -373,6 +374,18 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:payments.refund')->group(function () {
         Route::post('/invoices/{id}/refunds', [RefundController::class, 'store'])->whereNumber('id');
+    });
+
+    // UC15 - Thiet lap muc tien co ban cho mot gio lam viec.
+    Route::middleware('permission:payroll.hourly_rate.view')->group(function () {
+        Route::get('/payroll/hourly-rates', [HourlyRateController::class, 'index']);
+        Route::get('/payroll/hourly-rates/current', [HourlyRateController::class, 'current']);
+        Route::get('/payroll/hourly-rates/{id}', [HourlyRateController::class, 'show'])->whereNumber('id');
+        Route::get('/payroll/hourly-rates/{id}/audit-logs', [HourlyRateController::class, 'auditLogs'])->whereNumber('id');
+    });
+    Route::middleware('permission:payroll.hourly_rate.manage')->group(function () {
+        Route::post('/payroll/hourly-rates', [HourlyRateController::class, 'store']);
+        Route::post('/payroll/hourly-rates/{id}/stop', [HourlyRateController::class, 'stop'])->whereNumber('id');
     });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.
