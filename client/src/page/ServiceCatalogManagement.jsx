@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { useServiceCatalog } from '@/features/service-catalog/hooks/useServiceCatalog';
 import ServiceFilterBar from '@/features/service-catalog/components/ServiceFilterBar';
 import ServiceTable from '@/features/service-catalog/components/ServiceTable';
@@ -8,9 +9,9 @@ import ServiceDetailPanel from '@/features/service-catalog/components/ServiceDet
 import ServiceFormModal from '@/features/service-catalog/components/ServiceFormModal';
 
 const ServiceCatalogManagement = () => {
-  const { userRole, hasPermission } = useAuth();
-  const canManage =
-    userRole === 'admin' || hasPermission('services.create') || hasPermission('services.edit');
+  const { userRole } = useAuth();
+  const { toast } = useToast();
+  const canManage = userRole === 'admin';
 
   const {
     items,
@@ -36,6 +37,15 @@ const ServiceCatalogManagement = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  const showWarnings = (response) => {
+    (response?.warnings || []).forEach((warning) => {
+      toast({
+        title: warning.code ? `Cảnh báo ${warning.code}` : 'Cảnh báo',
+        description: warning.message || 'Dịch vụ đã lưu, nhưng cần kiểm tra thêm cấu hình vận hành.',
+      });
+    });
+  };
+
   const handleCreate = () => {
     setFormInitial(null);
     setFormError('');
@@ -52,12 +62,15 @@ const ServiceCatalogManagement = () => {
     setSaving(true);
     setFormError('');
     try {
+      let response;
       if (formInitial?.id) {
-        await update(formInitial.id, payload);
+        response = await update(formInitial.id, payload);
       } else {
-        const created = await create(payload);
+        response = await create(payload);
+        const created = response;
         if (created?.id) setSelectedId(created.id);
       }
+      showWarnings(response);
       setFormOpen(false);
     } catch (err) {
       const msg =

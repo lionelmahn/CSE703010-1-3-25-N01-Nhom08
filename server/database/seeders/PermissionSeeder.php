@@ -344,6 +344,26 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($uc16Ids);
         }
 
+        // UC17 - Thiet lap he so phuc tap theo dich vu va muc xu ly.
+        $uc17Slugs = [
+            'payroll.service_complexity.view' => 'Xem cau hinh he so phuc tap dich vu',
+            'payroll.service_complexity.manage' => 'Thiet lap he so phuc tap dich vu',
+        ];
+        $uc17Ids = [];
+        foreach ($uc17Slugs as $slug => $name) {
+            $permission = Permission::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc17Ids[] = $permission->id;
+        }
+        if ($adminRole && ! empty($uc17Ids)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc17Ids);
+        }
+        if ($accountantRole && ! empty($uc17Ids)) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc17Ids);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

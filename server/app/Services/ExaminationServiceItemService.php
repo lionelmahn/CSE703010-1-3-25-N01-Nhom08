@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
  *  - VR5/VR8 (chan khi paid), VR9 (chan khi ky luong da chot),
  *    AC11/VR7 (ly do bat buoc khi he so > 0),
  *    gioi han 50 dong (xac nhan PO ngay 29/05).
- *  - He so phuc tap luon re-derive server-side (mock UC17).
+ *  - He so phuc tap luon re-derive server-side tu UC17.
  *  - Snapshot service_code/name/unit_price/coefficient khi tao - khong bi
  *    anh huong khi cau hinh sau nay thay doi.
  */
@@ -61,8 +61,9 @@ class ExaminationServiceItemService
                 ]);
             }
 
-            // He so re-derive server-side (UI4). Khong nhan tu client (AC10).
-            $coefficient = $this->complexity->coefficientFor($service->id, $level);
+            // He so re-derive server-side tu UC17. Khong nhan tu client.
+            $complexitySnapshot = $this->complexity->snapshotFor($service->id, $level, $actor);
+            $coefficient = $complexitySnapshot['coefficient'];
             $unitPrice = $this->servicePrice->priceAt($service->id) ?? (float) ($service->price ?? 0);
             $quantity = max(1, (int) ($payload['quantity'] ?? 1));
             $subtotal = ExaminationServiceItem::recalcSubtotal($unitPrice, $quantity, $coefficient);
@@ -85,6 +86,7 @@ class ExaminationServiceItemService
                 'tooth_codes' => $this->normalizeToothCodes($payload['tooth_codes'] ?? null),
                 'processing_level' => $level,
                 'complexity_coefficient' => $coefficient,
+                'service_complexity_coefficient_id' => $complexitySnapshot['config_id'],
                 'complexity_reason' => $complexityReason,
                 'unit_price_snapshot' => $unitPrice,
                 'quantity' => $quantity,
@@ -105,6 +107,7 @@ class ExaminationServiceItemService
                     'service_name' => $service->name,
                     'processing_level' => $level,
                     'complexity_coefficient' => $coefficient,
+                    'service_complexity_coefficient_id' => $complexitySnapshot['config_id'],
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'subtotal' => $subtotal,
@@ -155,7 +158,8 @@ class ExaminationServiceItemService
 
             $before = $item->only([
                 'service_id', 'processing_level', 'complexity_coefficient',
-                'complexity_reason', 'quantity', 'tooth_codes', 'subtotal_snapshot',
+                'service_complexity_coefficient_id', 'complexity_reason',
+                'quantity', 'tooth_codes', 'subtotal_snapshot',
             ]);
 
             if (array_key_exists('processing_level', $payload)) {
@@ -167,7 +171,9 @@ class ExaminationServiceItemService
                 }
                 $item->processing_level = $level;
                 // Re-derive coefficient theo level moi (snapshot khi day vao DB).
-                $item->complexity_coefficient = $this->complexity->coefficientFor($item->service_id, $level);
+                $complexitySnapshot = $this->complexity->snapshotFor($item->service_id, $level, $actor);
+                $item->complexity_coefficient = $complexitySnapshot['coefficient'];
+                $item->service_complexity_coefficient_id = $complexitySnapshot['config_id'];
             }
 
             if (array_key_exists('quantity', $payload)) {

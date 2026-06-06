@@ -107,6 +107,11 @@ export const medicalRecordsApi = {
     return response.data;
   },
 
+  serviceComplexityPreview: async (params = {}) => {
+    const response = await axiosClient.get('/examinations/options/service-complexity', { params });
+    return response.data;
+  },
+
   serviceCatalog: async (params = {}) => {
     const response = await axiosClient.get('/examinations/options/services', { params });
     return response.data;

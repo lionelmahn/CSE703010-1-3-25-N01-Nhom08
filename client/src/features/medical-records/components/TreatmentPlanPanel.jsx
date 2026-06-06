@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { medicalRecordsApi } from '@/api/medicalRecordsApi';
 import ServiceRowEditor from './ServiceRowEditor';
 import { formatVnd, LEVEL_LABELS } from '../lib/format';
 
@@ -42,7 +43,20 @@ export default function TreatmentPlanPanel({
     return arr.reduce((acc, l) => ({ ...acc, [l.value]: Number(l.default_coefficient || 0) }), {});
   }, [options]);
 
-  const coefficientPreviewer = (serviceId, level) => defaultCoefByLevel[level] ?? 0;
+  const coefficientPreviewer = useCallback(async (serviceId, level) => {
+    const fallback = defaultCoefByLevel[level] ?? 0;
+    if (!serviceId || !level) return fallback;
+
+    try {
+      const response = await medicalRecordsApi.serviceComplexityPreview({
+        service_id: serviceId,
+        processing_level: level,
+      });
+      return Number(response?.data?.coefficient ?? fallback);
+    } catch {
+      return fallback;
+    }
+  }, [defaultCoefByLevel]);
 
   const editingItem = useMemo(
     () => items.find((it) => it.id === editingId),

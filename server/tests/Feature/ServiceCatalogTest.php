@@ -100,6 +100,72 @@ class ServiceCatalogTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_e4_missing_matching_doctor_is_warning_not_blocker(): void
+    {
+        Sanctum::actingAs($this->createUser('admin'));
+        $group = ServiceGroup::first();
+        $spec = Specialty::create([
+            'code' => 'NO_DOCTOR_UC17',
+            'name' => 'Chuyen mon chua co bac si UC17',
+            'is_active' => true,
+        ]);
+
+        $created = $this->postJson('/api/services', [
+            'service_code' => 'DV9102',
+            'name' => 'Dich vu can canh bao E4',
+            'service_group_id' => $group->id,
+            'price' => 100000,
+            'status' => Service::STATUS_ACTIVE,
+            'specialty_ids' => [$spec->id],
+            'primary_specialty_id' => $spec->id,
+        ]);
+
+        $created->assertCreated()
+            ->assertJsonPath('status', Service::STATUS_ACTIVE)
+            ->assertJsonPath('warnings.0.code', 'E4');
+
+        $service = Service::create([
+            'service_code' => 'DV9103',
+            'name' => 'Dich vu doi trang thai E4',
+            'service_group_id' => $group->id,
+            'price' => 100000,
+            'status' => Service::STATUS_DRAFT,
+            'visibility' => Service::VISIBILITY_INTERNAL,
+        ]);
+        $service->specialties()->attach($spec->id, ['is_primary' => true]);
+
+        $changed = $this->postJson('/api/services/'.$service->id.'/status', [
+            'status' => Service::STATUS_ACTIVE,
+            'reason' => 'Kich hoat de test warning',
+        ]);
+
+        $changed->assertOk()
+            ->assertJsonPath('status', Service::STATUS_ACTIVE)
+            ->assertJsonPath('warnings.0.code', 'E4');
+
+        $updatable = Service::create([
+            'service_code' => 'DV9104',
+            'name' => 'Dich vu cap nhat E4',
+            'service_group_id' => $group->id,
+            'price' => 100000,
+            'status' => Service::STATUS_DRAFT,
+            'visibility' => Service::VISIBILITY_INTERNAL,
+        ]);
+        $updatable->specialties()->attach($spec->id, ['is_primary' => true]);
+
+        $updated = $this->putJson('/api/services/'.$updatable->id, [
+            'status' => Service::STATUS_ACTIVE,
+        ]);
+
+        $updated->assertOk()
+            ->assertJsonPath('status', Service::STATUS_ACTIVE)
+            ->assertJsonPath('warnings.0.code', 'E4');
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'service.specialty_warning',
+        ]);
+    }
+
     public function test_e8_primary_must_be_within_required_specialties(): void
     {
         Sanctum::actingAs($this->createUser('admin'));

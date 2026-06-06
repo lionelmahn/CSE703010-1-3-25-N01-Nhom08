@@ -254,6 +254,40 @@ class ExaminationController extends Controller
         ]);
     }
 
+    public function serviceComplexityPreview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'service_id' => ['required', 'integer', 'exists:services,id'],
+            'processing_level' => ['required', 'string'],
+            'date' => ['nullable', 'date'],
+        ]);
+
+        if (! $this->complexity->isValidLevel($data['processing_level'])) {
+            return response()->json([
+                'message' => 'Muc xu ly khong hop le.',
+                'errors' => ['processing_level' => ['Muc xu ly khong hop le.']],
+            ], 422);
+        }
+
+        $snapshot = $this->complexity->snapshotFor(
+            (int) $data['service_id'],
+            $data['processing_level'],
+            $request->user(),
+            logDefault: false,
+            date: $data['date'] ?? null,
+        );
+
+        return response()->json([
+            'data' => [
+                'service_id' => (int) $data['service_id'],
+                'processing_level' => $data['processing_level'],
+                'coefficient' => $snapshot['coefficient'],
+                'config_id' => $snapshot['config_id'],
+                'is_default' => $snapshot['is_default'],
+            ],
+        ]);
+    }
+
     /**
      * Bac si chi duoc thao tac voi phien cua minh; admin override.
      */

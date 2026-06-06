@@ -21,33 +21,35 @@ class UserSeeder extends Seeder
         foreach ($accounts as $acc) {
             $role = Role::where('slug', $acc['slug'])->first();
             
-            $user = User::create([
+            $user = User::updateOrCreate([
+                'employee_id' => $acc['employee_id'],
+            ], [
                 'name'        => $acc['name'],
                 'username'    => $acc['username'],
                 'email'       => $acc['email'],
-                'employee_id' => $acc['employee_id'],
                 'password'    => Hash::make('Dental@123'),
                 'status'      => 'active',
             ]);
 
             // Gắn vai trò qua bảng pivot
             if ($role) {
-                $user->roles()->attach($role->id);
+                $user->roles()->syncWithoutDetaching([$role->id]);
             }
         }
 
         // Tạo thêm 1 tài khoản bị khóa để test (Test case 6)
         $role = Role::where('slug', 'le_tan')->first();
-        $locked = User::create([
+        $locked = User::updateOrCreate([
+            'employee_id' => 'LT002',
+        ], [
             'name'        => 'Lễ tân bị khóa',
             'username'    => 'letan_locked',
             'email'       => 'locked@dental.com',
-            'employee_id' => 'LT002',
             'password'    => Hash::make('Dental@123'),
             'status'      => 'locked',
         ]);
         if ($role) {
-            $locked->roles()->attach($role->id);
+            $locked->roles()->syncWithoutDetaching([$role->id]);
         }
     }
 }

@@ -50,6 +50,7 @@ class ExaminationServiceItem extends Model
         'tooth_codes',
         'processing_level',
         'complexity_coefficient',
+        'service_complexity_coefficient_id',
         'complexity_reason',
         'unit_price_snapshot',
         'quantity',
@@ -80,6 +81,11 @@ class ExaminationServiceItem extends Model
     public function performer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'performed_by');
+    }
+
+    public function serviceComplexityCoefficient(): BelongsTo
+    {
+        return $this->belongsTo(ServiceComplexityCoefficient::class, 'service_complexity_coefficient_id');
     }
 
     public static function recalcSubtotal(float $unitPrice, int $quantity, float $coefficient): float

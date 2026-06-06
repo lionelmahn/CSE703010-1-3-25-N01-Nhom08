@@ -41,11 +41,13 @@ export default function ServiceRowEditor({
   const [toothCodesRaw, setToothCodesRaw] = useState(
     Array.isArray(item?.tooth_codes) ? item.tooth_codes.join(', ') : '',
   );
+  const [previewCoefficient, setPreviewCoefficient] = useState(Number(item?.complexity_coefficient ?? defaultCoefficient ?? 0));
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [touched, setTouched] = useState(false);
 
   const selectedService = services.find((s) => String(s.id) === String(serviceId));
   const unitPrice = mode === 'edit' ? Number(item?.unit_price_snapshot || 0) : Number(selectedService?.price || 0);
-  const coefficient = coefficientPreviewer?.(serviceId, processingLevel) ?? defaultCoefficient;
+  const coefficient = Number(previewCoefficient ?? defaultCoefficient ?? 0);
   const subtotal = calcSubtotal(unitPrice, quantity, coefficient);
 
   useEffect(() => {
@@ -56,9 +58,46 @@ export default function ServiceRowEditor({
       setQuantity(item.quantity || 1);
       setComplexityReason(item.complexity_reason || '');
       setToothCodesRaw(Array.isArray(item.tooth_codes) ? item.tooth_codes.join(', ') : '');
+      setPreviewCoefficient(Number(item.complexity_coefficient ?? defaultCoefficient ?? 0));
       /* eslint-enable react-hooks/set-state-in-effect */
     }
-  }, [item]);
+  }, [defaultCoefficient, item]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fallback = Number(item?.complexity_coefficient ?? defaultCoefficient ?? 0);
+
+    if (!serviceId || !processingLevel || typeof coefficientPreviewer !== 'function') {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setPreviewCoefficient(fallback);
+      setPreviewLoading(false);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setPreviewLoading(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    Promise.resolve(coefficientPreviewer(serviceId, processingLevel))
+      .then((result) => {
+        if (cancelled) return;
+        const value = typeof result === 'object' ? result?.coefficient : result;
+        const numericValue = Number(value);
+        setPreviewCoefficient(Number.isFinite(numericValue) ? numericValue : fallback);
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewCoefficient(fallback);
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coefficientPreviewer, defaultCoefficient, item?.complexity_coefficient, processingLevel, serviceId]);
 
   const toothCodes = toothCodesRaw
     .split(',')
@@ -194,7 +233,7 @@ export default function ServiceRowEditor({
 
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onCancel}>Hủy</Button>
-        <Button size="sm" onClick={submit} disabled={saving}>
+        <Button size="sm" onClick={submit} disabled={saving || previewLoading}>
           <Save className="h-4 w-4 mr-1" />
           {saving ? 'Đang lưu...' : 'Lưu dịch vụ'}
         </Button>

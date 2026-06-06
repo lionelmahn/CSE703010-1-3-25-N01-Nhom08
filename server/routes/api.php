@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\RevenueReportController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
+use App\Http\Controllers\Api\ServiceComplexityController;
 use App\Http\Controllers\Api\ServicePackageController;
 use App\Http\Controllers\Api\ServicePriceController;
 use App\Http\Controllers\Api\ShiftSwapRequestController;
@@ -317,6 +318,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:dental_records.view')->group(function () {
         Route::get('/medical-records/worklist', [ExaminationController::class, 'worklist']);
         Route::get('/examinations/options', [ExaminationController::class, 'options']);
+        Route::get('/examinations/options/service-complexity', [ExaminationController::class, 'serviceComplexityPreview']);
         Route::get('/examinations/options/services', [ExaminationController::class, 'serviceCatalog']);
         Route::get('/examinations/options/tooth-statuses', [ExaminationController::class, 'toothStatuses']);
         Route::get('/examinations/{id}', [ExaminationController::class, 'show'])->whereNumber('id');
@@ -400,6 +402,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payroll/shift-coefficients', [ShiftCoefficientController::class, 'store']);
         Route::post('/payroll/shift-coefficients/bulk', [ShiftCoefficientController::class, 'bulkStore']);
         Route::post('/payroll/shift-coefficients/{id}/stop', [ShiftCoefficientController::class, 'stop'])->whereNumber('id');
+    });
+
+    // UC17 - Thiet lap he so phuc tap theo dich vu va muc xu ly.
+    Route::middleware('permission:payroll.service_complexity.view')->group(function () {
+        Route::get('/payroll/service-complexities', [ServiceComplexityController::class, 'index']);
+        Route::get('/payroll/service-complexities/options', [ServiceComplexityController::class, 'options']);
+        Route::get('/payroll/service-complexities/effective', [ServiceComplexityController::class, 'effectiveMatrix']);
+        Route::get('/payroll/service-complexities/{id}', [ServiceComplexityController::class, 'show'])->whereNumber('id');
+        Route::get('/payroll/service-complexities/{id}/audit-logs', [ServiceComplexityController::class, 'auditLogs'])->whereNumber('id');
+    });
+    Route::middleware('permission:payroll.service_complexity.manage')->group(function () {
+        Route::post('/payroll/service-complexities', [ServiceComplexityController::class, 'store']);
+        Route::post('/payroll/service-complexities/bulk', [ServiceComplexityController::class, 'bulkStore']);
+        Route::post('/payroll/service-complexities/{id}/stop', [ServiceComplexityController::class, 'stop'])->whereNumber('id');
     });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.

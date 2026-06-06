@@ -3,19 +3,21 @@
 namespace App\Services;
 
 use App\Models\ExaminationServiceItem;
+use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Config;
 
 /**
  * UC12 - Lookup he so phuc tap mac dinh theo dich vu + muc xu ly.
  *
- * Day la mock cho UC17 (UC17 chua co - se cau hinh he so theo dich vu trong
- * tuong lai). Khi UC17 ra mat, lop nay chi can sua method `coefficientFor`
- * de doc tu bang config DB thay vi file.
- *
  * He so su dung dang cong them (additive) 0..0.5 - theo xac nhan PO.
  */
 class ComplexityConfigService
 {
+    public function __construct(private readonly ServiceComplexityService $serviceComplexities)
+    {
+    }
+
     /**
      * Tra ve mang [level => label].
      *
@@ -37,21 +39,34 @@ class ComplexityConfigService
     }
 
     /**
-     * He so mac dinh theo dich vu + muc xu ly.
-     *
-     * Uu tien per-service override (config('dental.service_complexity_overrides'))
-     * roi moi fallback ve mac dinh theo level.
+     * He so theo dich vu + muc xu ly. UC17 la nguon su that; neu thieu
+     * cau hinh thi fallback ve 0 de UC12 khong nhan he so tu client.
      */
-    public function coefficientFor(?int $serviceId, string $level): float
+    public function coefficientFor(
+        ?int $serviceId,
+        string $level,
+        ?User $actor = null,
+        bool $logDefault = false,
+        CarbonInterface|string|null $date = null
+    ): float
     {
-        $overrides = Config::get('dental.service_complexity_overrides', []);
-        if ($serviceId !== null && isset($overrides[$serviceId][$level])) {
-            return $this->clamp((float) $overrides[$serviceId][$level]);
-        }
+        return $this->snapshotFor($serviceId, $level, $actor, $logDefault, $date)['coefficient'];
+    }
 
-        $defaults = Config::get('dental.default_complexity_by_level', []);
+    /**
+     * @return array{coefficient:float,config_id:int|null,is_default:bool}
+     */
+    public function snapshotFor(
+        ?int $serviceId,
+        string $level,
+        ?User $actor = null,
+        bool $logDefault = true,
+        CarbonInterface|string|null $date = null
+    ): array {
+        $snapshot = $this->serviceComplexities->snapshotFor($serviceId, $level, $actor, $logDefault, $date);
+        $snapshot['coefficient'] = $this->clamp((float) $snapshot['coefficient']);
 
-        return $this->clamp((float) ($defaults[$level] ?? 0.0));
+        return $snapshot;
     }
 
     /**

@@ -20,6 +20,16 @@ use Illuminate\Validation\ValidationException;
 
 class ServiceCatalogService
 {
+    private const WARNING_MISSING_DOCTOR_SPECIALTY = [
+        'code' => 'E4',
+        'message' => 'Chưa có bác sĩ với chuyên môn phù hợp để triển khai dịch vụ.',
+    ];
+
+    /**
+     * @var array<int,array{code:string,message:string}>
+     */
+    private array $warnings = [];
+
     public function __construct(
         private readonly AuditLogService $auditLog,
         private readonly ServicePriceService $servicePriceService,
@@ -95,6 +105,7 @@ class ServiceCatalogService
 
     public function createService(array $data, ?User $actor): Service
     {
+        $this->resetWarnings();
         $payload = $this->sanitizePayload($data, isUpdate: false);
         $specialties = $this->validateSpecialties($data);
         $this->ensureUniqueCode($payload['service_code']);
@@ -142,12 +153,15 @@ class ServiceCatalogService
                 'status' => $service->status,
             ]);
 
-            return $service->fresh(['group', 'specialties', 'attachments']);
+            $this->logWarnings($service, $actor);
+
+            return $this->withWarnings($service->fresh(['group', 'specialties', 'attachments']));
         });
     }
 
     public function updateService(int $id, array $data, ?User $actor): Service
     {
+        $this->resetWarnings();
         $service = Service::findOrFail($id);
 
         $payload = $this->sanitizePayload($data, isUpdate: true, current: $service);
@@ -225,12 +239,16 @@ class ServiceCatalogService
                 'changes' => array_keys($payload),
             ]);
 
-            return $service->fresh(['group', 'specialties', 'attachments']);
+            $this->logWarnings($service, $actor);
+
+            return $this->withWarnings($service->fresh(['group', 'specialties', 'attachments']));
         });
     }
 
     public function changeStatus(int $id, string $newStatus, ?string $reason, ?User $actor): Service
     {
+        $this->resetWarnings();
+
         if (! in_array($newStatus, Service::STATUSES, true)) {
             throw ValidationException::withMessages([
                 'status' => 'Trang thai khong hop le (E9).',
@@ -280,7 +298,9 @@ class ServiceCatalogService
                 'reason' => $reason,
             ]);
 
-            return $service->fresh(['specialties', 'group']);
+            $this->logWarnings($service, $actor);
+
+            return $this->withWarnings($service->fresh(['specialties', 'group']));
         });
     }
 
@@ -429,11 +449,49 @@ class ServiceCatalogService
             }
 
             if (! $this->doctorAvailableForSpecialty((int) $primary['id'])) {
-                throw ValidationException::withMessages([
-                    'specialty_ids' => 'Khong co bac si voi chuyen mon phu hop de trien khai dich vu (E4).',
-                ]);
+                $this->addWarning(self::WARNING_MISSING_DOCTOR_SPECIALTY);
             }
         }
+    }
+
+    /**
+     * @param  array{code:string,message:string}  $warning
+     */
+    private function addWarning(array $warning): void
+    {
+        foreach ($this->warnings as $existing) {
+            if ($existing['code'] === $warning['code']) {
+                return;
+            }
+        }
+
+        $this->warnings[] = $warning;
+    }
+
+    private function resetWarnings(): void
+    {
+        $this->warnings = [];
+    }
+
+    private function logWarnings(Service $service, ?User $actor): void
+    {
+        foreach ($this->warnings as $warning) {
+            $this->auditLog->log($actor, 'service.specialty_warning', [
+                'service_id' => $service->id,
+                'service_code' => $service->service_code,
+                'warning_code' => $warning['code'],
+                'message' => $warning['message'],
+            ]);
+        }
+    }
+
+    private function withWarnings(Service $service): Service
+    {
+        if (! empty($this->warnings)) {
+            $service->setAttribute('warnings', $this->warnings);
+        }
+
+        return $service;
     }
 
     /**

@@ -214,6 +214,14 @@ export const SIDEBAR_ITEMS = [
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['payroll.shift_coefficient.view'],
   },
+  {
+    label: 'Cấu hình độ phức tạp',
+    path: '/payroll/settings/service-complexity',
+    icon: Percent,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.service_complexity.view'],
+  },
 
   // -- Nhân sự ----------------------------------------------------------------
   {

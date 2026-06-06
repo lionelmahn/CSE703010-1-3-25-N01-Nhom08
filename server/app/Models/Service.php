@@ -83,6 +83,11 @@ class Service extends Model
         return $this->hasMany(ServicePrice::class)->orderByDesc('effective_from');
     }
 
+    public function complexityCoefficients(): HasMany
+    {
+        return $this->hasMany(ServiceComplexityCoefficient::class)->orderByDesc('effective_from');
+    }
+
     public function activePrice()
     {
         return $this->hasOne(ServicePrice::class)
