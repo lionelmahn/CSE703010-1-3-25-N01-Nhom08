@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorController;
+use App\Http\Controllers\Api\DoctorQualificationCoefficientController;
 use App\Http\Controllers\Api\ExaminationController;
 use App\Http\Controllers\Api\HourlyRateController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -416,6 +417,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payroll/service-complexities', [ServiceComplexityController::class, 'store']);
         Route::post('/payroll/service-complexities/bulk', [ServiceComplexityController::class, 'bulkStore']);
         Route::post('/payroll/service-complexities/{id}/stop', [ServiceComplexityController::class, 'stop'])->whereNumber('id');
+    });
+
+    // UC15.4 - Thiet lap he so bac si theo hoc ham/hoc vi.
+    Route::middleware('permission:payroll.doctor_qualification_coefficient.view')->group(function () {
+        Route::get('/payroll/doctor-qualification-coefficients', [DoctorQualificationCoefficientController::class, 'index']);
+        Route::get('/payroll/doctor-qualification-coefficients/options', [DoctorQualificationCoefficientController::class, 'options']);
+        Route::get('/payroll/doctor-qualification-coefficients/effective', [DoctorQualificationCoefficientController::class, 'effectiveMatrix']);
+        Route::get('/payroll/doctor-qualification-coefficients/{id}', [DoctorQualificationCoefficientController::class, 'show'])->whereNumber('id');
+        Route::get('/payroll/doctor-qualification-coefficients/{id}/audit-logs', [DoctorQualificationCoefficientController::class, 'auditLogs'])->whereNumber('id');
+    });
+    Route::middleware('permission:payroll.doctor_qualification_coefficient.manage')->group(function () {
+        Route::post('/payroll/doctor-qualification-coefficients', [DoctorQualificationCoefficientController::class, 'store']);
+        Route::post('/payroll/doctor-qualification-coefficients/bulk', [DoctorQualificationCoefficientController::class, 'bulkStore']);
+        Route::post('/payroll/doctor-qualification-coefficients/{id}/stop', [DoctorQualificationCoefficientController::class, 'stop'])->whereNumber('id');
     });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.

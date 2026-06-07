@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, Plus, FileWarning, AlarmClock, ClipboardList } from 'lucide-react';
 import ProfessionalProfileTable from '@/features/professional-profiles/components/ProfessionalProfileTable';
-import ProfessionalProfileForm from '@/features/professional-profiles/components/ProfessionalProfileForm';
 import ProfessionalProfileWizardModal from '@/features/professional-profiles/components/ProfessionalProfileWizardModal';
 import ProfessionalProfileDetailPanel from '@/features/professional-profiles/components/ProfessionalProfileDetailPanel';
 import professionalProfileApi from '@/api/professionalProfileApi';
@@ -10,9 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   buildProfileFormData,
-  createEmptyCertificate,
   createEmptyProfileForm,
-  createEmptySpecialty,
   mapProfileToForm,
   PROFILE_STATUS_META,
 } from '@/features/professional-profiles/utils';
@@ -34,7 +31,7 @@ export default function ProfessionalProfileManagement() {
   const [staffOptions, setStaffOptions] = useState([]);
   const [services, setServices] = useState([]);
   const [branches, setBranches] = useState([]);
-  const [degrees, setDegrees] = useState([]);
+  const [qualifications, setQualifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -44,7 +41,6 @@ export default function ProfessionalProfileManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [openForm, setOpenForm] = useState(false);
   const [openWizard, setOpenWizard] = useState(false);
   const [submittingWizard, setSubmittingWizard] = useState(false);
   const [form, setForm] = useState(createEmptyProfileForm());
@@ -58,7 +54,7 @@ export default function ProfessionalProfileManagement() {
     setStaffOptions(response.data.staff || []);
     setServices(response.data.services || []);
     setBranches(response.data.branches || []);
-    setDegrees(response.data.degrees || []);
+    setQualifications(response.data.qualifications || []);
   };
 
   const loadProfiles = async (page = 1, overrides = {}) => {
@@ -128,11 +124,6 @@ export default function ProfessionalProfileManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, filterRole, filterStatus, perPage]);
 
-  const filteredStaffOptions = useMemo(() => {
-    if (!form.profile_role) return staffOptions;
-    return staffOptions.filter((staff) => staff.role_slug === form.profile_role);
-  }, [staffOptions, form.profile_role]);
-
   const stats = useMemo(() => {
     const expiringSoon = profiles.filter((p) => p.expiring_soon && !p.has_expired_certificate).length;
     const expired = profiles.filter((p) => p.has_expired_certificate || p.status === 'expired').length;
@@ -181,30 +172,6 @@ export default function ProfessionalProfileManagement() {
   const handleClosePanel = () => {
     setSelectedProfile(null);
     setSelectedHistory([]);
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const payload = buildProfileFormData(form);
-      if (form.id) {
-        await professionalProfileApi.update(form.id, payload);
-        toast({ title: 'Thành công', description: 'Đã cập nhật hồ sơ chuyên môn.' });
-      } else {
-        await professionalProfileApi.create(payload);
-        toast({ title: 'Thành công', description: 'Đã tạo hồ sơ chuyên môn mới.' });
-      }
-      setOpenForm(false);
-      loadProfiles(currentPage);
-      if (selectedProfile?.id && form.id === selectedProfile.id) {
-        loadProfileDetail(selectedProfile.id);
-      }
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Lỗi',
-        description: error.response?.data?.message || 'Lưu hồ sơ thất bại.',
-      });
-    }
   };
 
   const handleWizardSubmit = async (wizardForm) => {
@@ -485,71 +452,12 @@ export default function ProfessionalProfileManagement() {
         staffOptions={staffOptions}
         branches={branches}
         services={services}
-        degrees={degrees}
+        qualifications={qualifications}
         isEdit={Boolean(form.id)}
         initialForm={form}
         submitting={submittingWizard}
         onClose={() => setOpenWizard(false)}
         onSubmit={handleWizardSubmit}
-      />
-
-      <ProfessionalProfileForm
-        open={openForm}
-        mode="admin"
-        form={form}
-        staffOptions={filteredStaffOptions}
-        services={services}
-        onClose={() => setOpenForm(false)}
-        onChange={(field, value) => setForm((prev) => ({ ...prev, [field]: value }))}
-        onAddSpecialty={() =>
-          setForm((prev) => ({ ...prev, specialties: [...prev.specialties, createEmptySpecialty()] }))
-        }
-        onRemoveSpecialty={(index) =>
-          setForm((prev) => ({
-            ...prev,
-            specialties: prev.specialties.filter((_, itemIndex) => itemIndex !== index),
-          }))
-        }
-        onUpdateSpecialty={(index, field, value) =>
-          setForm((prev) => ({
-            ...prev,
-            specialties: prev.specialties.map((specialty, itemIndex) =>
-              itemIndex === index
-                ? { ...specialty, [field]: field === 'years_experience' ? Number(value) : value }
-                : specialty
-            ),
-          }))
-        }
-        onAddCertificate={() =>
-          setForm((prev) => ({
-            ...prev,
-            certificates: [...prev.certificates, createEmptyCertificate()],
-          }))
-        }
-        onRemoveCertificate={(index) =>
-          setForm((prev) => ({
-            ...prev,
-            certificates: prev.certificates.filter((_, itemIndex) => itemIndex !== index),
-          }))
-        }
-        onUpdateCertificate={(index, field, value) =>
-          setForm((prev) => ({
-            ...prev,
-            certificates: prev.certificates.map((certificate, itemIndex) =>
-              itemIndex === index
-                ? {
-                  ...certificate,
-                  [field]: value === 'general' ? '' : value,
-                  professional_profile_specialty_id:
-                    field === 'specialty_client_key'
-                      ? null
-                      : certificate.professional_profile_specialty_id,
-                }
-                : certificate
-            ),
-          }))
-        }
-        onSubmit={handleSubmit}
       />
 
       <Dialog

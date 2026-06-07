@@ -9,6 +9,10 @@ export default function ProfessionalProfileDetailModal({ open, profile, onClose 
 
   const statusMeta = PROFILE_STATUS_META[profile.status] || PROFILE_STATUS_META.draft;
   const isDoctor = profile.profile_role === 'bac_si';
+  const qualificationNames =
+    Array.isArray(profile.qualification_names) && profile.qualification_names.length > 0
+      ? profile.qualification_names.join(', ')
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -94,7 +98,7 @@ export default function ProfessionalProfileDetailModal({ open, profile, onClose 
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <div className="font-semibold text-slate-800">{specialty.specialty_name}</div>
-                          <div className="text-sm text-slate-500">{specialty.degree || 'Chua cap nhat hoc vi'}</div>
+                          <div className="text-sm text-slate-500">{qualificationNames || specialty.degree || 'Chua cap nhat hoc vi'}</div>
                         </div>
                         <div className="text-sm text-slate-600">{specialty.years_experience || 0} nam kinh nghiem</div>
                       </div>

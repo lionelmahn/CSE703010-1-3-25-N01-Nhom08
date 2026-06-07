@@ -31,6 +31,7 @@ class Staff extends Model
         'school',
         'graduation_year',
         'practice_certificate',
+        // HR contract metadata; payroll coefficient settings do not resolve from these fields.
         'base_salary',
         'salary_type',
         'bank_name',

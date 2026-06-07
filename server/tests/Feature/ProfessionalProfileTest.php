@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ProfessionalProfile;
+use App\Models\QualificationCatalog;
 use App\Models\Role;
 use App\Models\Staff;
 use App\Models\User;
@@ -41,6 +42,7 @@ class ProfessionalProfileTest extends TestCase
             'profile_role' => 'bac_si',
             'status' => 'pending',
             'notes' => 'Ho so tao moi',
+            'qualification_codes_payload' => json_encode(['thac_si', 'dai_hoc']),
             'specialties_payload' => json_encode([
                 [
                     'client_key' => 'sp_1',
@@ -83,6 +85,17 @@ class ProfessionalProfileTest extends TestCase
         ]);
         $this->assertDatabaseHas('professional_profile_certificates', [
             'certificate_number' => 'BS-001',
+        ]);
+        $profileId = $response->json('profile.id');
+        $masterCatalog = QualificationCatalog::query()->where('code', 'thac_si')->firstOrFail();
+        $universityCatalog = QualificationCatalog::query()->where('code', 'dai_hoc')->firstOrFail();
+        $this->assertDatabaseHas('professional_profile_qualifications', [
+            'professional_profile_id' => $profileId,
+            'qualification_catalog_id' => $masterCatalog->id,
+        ]);
+        $this->assertDatabaseHas('professional_profile_qualifications', [
+            'professional_profile_id' => $profileId,
+            'qualification_catalog_id' => $universityCatalog->id,
         ]);
     }
 

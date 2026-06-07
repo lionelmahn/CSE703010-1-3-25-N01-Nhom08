@@ -22,6 +22,7 @@ export const createEmptySpecialty = () => ({
   client_key: `sp_${Date.now()}_${Math.random().toString(16).slice(2)}`,
   specialty_name: '',
   degree: '',
+  qualification_codes: [],
   years_experience: 0,
   service_scope: [],
   branch_or_room: '',
@@ -53,6 +54,7 @@ export const createEmptyProfileForm = () => ({
   status: 'draft',
   notes: '',
   degree: '',
+  qualification_codes: [],
   years_experience: '',
   branch_id: '',
   service_scope: [],
@@ -70,6 +72,7 @@ export const mapProfileToForm = (profile) => {
     client_key: `sp_${specialty.id}`,
     specialty_name: specialty.specialty_name || '',
     degree: specialty.degree || '',
+    qualification_codes: Array.isArray(specialty.qualification_codes) ? specialty.qualification_codes : [],
     years_experience: specialty.years_experience || 0,
     service_scope: specialty.service_scope || [],
     branch_or_room: specialty.branch_or_room || '',
@@ -84,6 +87,11 @@ export const mapProfileToForm = (profile) => {
     status: profile.status || 'draft',
     notes: profile.notes || '',
     degree: profile.degree || '',
+    qualification_codes: Array.isArray(profile.qualification_codes)
+      ? profile.qualification_codes
+      : (profile.qualifications || [])
+        .map((qualification) => qualification.catalog?.code || qualification.code)
+        .filter(Boolean),
     years_experience:
       profile.years_experience !== null && profile.years_experience !== undefined
         ? String(profile.years_experience)
@@ -126,6 +134,7 @@ export const buildProfileFormData = (form, { selfService = false } = {}) => {
     if (form.degree !== undefined && form.degree !== null && form.degree !== '') {
       data.append('degree', form.degree);
     }
+    data.append('qualification_codes_payload', JSON.stringify(form.qualification_codes || []));
     if (form.years_experience !== undefined && form.years_experience !== null && form.years_experience !== '') {
       data.append('years_experience', String(form.years_experience));
     }

@@ -74,6 +74,23 @@ const serviceAliases = (service) =>
 
 const serviceValue = (service) => String(service.id);
 
+const normalizeQualificationOptions = (qualifications = []) =>
+  qualifications.map((qualification) => ({
+    code: qualification.code,
+    name: qualification.name,
+    type: qualification.type,
+    priority: Number(qualification.priority || 99),
+  }));
+
+const sortQualificationCodes = (codes = [], options = []) => {
+  const priority = new Map(options.map((option) => [option.code, option.priority || 99]));
+  return [...new Set(codes.filter(Boolean))]
+    .sort((left, right) => (priority.get(left) || 99) - (priority.get(right) || 99));
+};
+
+const qualificationLabel = (code, options = []) =>
+  options.find((option) => option.code === code)?.name || code;
+
 const scopeHasService = (scope, service) => {
   const aliases = serviceAliases(service);
   return normalizeScope(scope).some((item) => aliases.includes(String(item).toLowerCase()));
@@ -116,6 +133,11 @@ const buildInitialForm = (initialForm) => {
     ...base,
     staff_id: base.staff_id ? String(base.staff_id) : '',
     branch_id: base.branch_id ? String(base.branch_id) : '',
+    qualification_codes: Array.isArray(base.qualification_codes)
+      ? base.qualification_codes
+      : base.degree
+        ? [base.degree]
+        : [],
     years_experience:
       base.years_experience !== null && base.years_experience !== undefined
         ? String(base.years_experience)
@@ -135,6 +157,7 @@ const buildInitialForm = (initialForm) => {
 const reviewSignature = (candidate) =>
   JSON.stringify({
     degree: candidate.degree || '',
+    qualification_codes: [...(candidate.qualification_codes || [])].sort(),
     years_experience: String(candidate.years_experience || ''),
     branch_id: String(candidate.branch_id || ''),
     service_scope: normalizeScope(candidate.service_scope).sort(),
@@ -236,7 +259,7 @@ export default function ProfessionalProfileWizardModal({
   staffOptions = [],
   branches = [],
   services = [],
-  degrees = [],
+  qualifications = [],
   isEdit = false,
   initialForm = null,
   submitting = false,
@@ -289,6 +312,15 @@ export default function ProfessionalProfileWizardModal({
   );
 
   const isDoctor = form.profile_role === 'bac_si';
+  const qualificationOptions = useMemo(
+    () => normalizeQualificationOptions(qualifications),
+    [qualifications]
+  );
+  const selectedQualificationCodes = useMemo(
+    () => sortQualificationCodes(form.qualification_codes || [], qualificationOptions),
+    [form.qualification_codes, qualificationOptions]
+  );
+  const primaryQualificationCode = selectedQualificationCodes[0] || form.degree || '';
   const certificateTypeOptions = useMemo(
     () => CERTIFICATE_TYPE_OPTIONS[form.profile_role] || [],
     [form.profile_role]
@@ -302,13 +334,13 @@ export default function ProfessionalProfileWizardModal({
       .map((specialty) => ({
         ...specialty,
         specialty_name: specialty.specialty_name.trim(),
-        degree: form.degree || specialty.degree || '',
+        degree: primaryQualificationCode || specialty.degree || '',
         years_experience: Number(form.years_experience || specialty.years_experience || 0),
         service_scope: serviceScope,
         branch_or_room: specialty.branch_or_room || selectedBranch?.name || '',
         notes: specialty.notes || '',
       }));
-  }, [form.degree, form.service_scope, form.specialties, form.years_experience, isDoctor, selectedBranch?.name]);
+  }, [form.service_scope, form.specialties, form.years_experience, isDoctor, primaryQualificationCode, selectedBranch?.name]);
 
   const normalizedCertificates = useMemo(
     () =>
@@ -340,11 +372,13 @@ export default function ProfessionalProfileWizardModal({
   const preparedForm = useMemo(
     () => ({
       ...form,
+      degree: primaryQualificationCode || form.degree,
+      qualification_codes: selectedQualificationCodes,
       service_scope: normalizeScope(form.service_scope),
       specialties: normalizedSpecialties,
       certificates: normalizedCertificates,
     }),
-    [form, normalizedCertificates, normalizedSpecialties]
+    [form, normalizedCertificates, normalizedSpecialties, primaryQualificationCode, selectedQualificationCodes]
   );
 
   const hasReviewChanges = useMemo(() => {
@@ -356,7 +390,12 @@ export default function ProfessionalProfileWizardModal({
   const changeItems = useMemo(() => {
     if (!isEdit) return [];
     const items = [];
-    if ((form.degree || '') !== (initialWizardForm.degree || '')) items.push('Hoc vi');
+    if (
+      JSON.stringify(selectedQualificationCodes) !==
+      JSON.stringify(sortQualificationCodes(initialWizardForm.qualification_codes || [], qualificationOptions))
+    ) {
+      items.push('Hoc ham/hoc vi');
+    }
     if (String(form.years_experience || '') !== String(initialWizardForm.years_experience || '')) {
       items.push('Kinh nghiem');
     }
@@ -395,7 +434,7 @@ export default function ProfessionalProfileWizardModal({
       items.push('Chung chi / tai lieu');
     }
     return Array.from(new Set(items));
-  }, [form, initialWizardForm, isEdit, preparedForm]);
+  }, [form, initialWizardForm, isEdit, preparedForm, qualificationOptions, selectedQualificationCodes]);
 
   const handleSelectStaff = (staff) => {
     setForm((prev) => ({
@@ -442,6 +481,24 @@ export default function ProfessionalProfileWizardModal({
         itemIndex === index ? { ...specialty, [field]: value } : specialty
       ),
     }));
+  };
+
+  const toggleQualification = (code, checked) => {
+    setForm((prev) => {
+      const nextCodes = sortQualificationCodes(
+        checked
+          ? [...(prev.qualification_codes || []), code]
+          : (prev.qualification_codes || []).filter((item) => item !== code),
+        qualificationOptions
+      );
+
+      return {
+        ...prev,
+        qualification_codes: nextCodes,
+        degree: nextCodes[0] || '',
+      };
+    });
+    setErrors((prev) => ({ ...prev, qualification_codes: undefined }));
   };
 
   const addCertificate = () => {
@@ -505,7 +562,7 @@ export default function ProfessionalProfileWizardModal({
     if (targetStep === 2) {
       if (!form.branch_id) nextErrors.branch_id = 'Vui long chon chi nhanh.';
       if (isDoctor) {
-        if (!form.degree) nextErrors.degree = 'Vui long chon hoc vi.';
+        if (selectedQualificationCodes.length === 0) nextErrors.qualification_codes = 'Vui long chon hoc ham/hoc vi.';
         if (normalizedSpecialties.length === 0) {
           nextErrors.specialties = 'Bac si can it nhat mot chuyen mon.';
         }
@@ -704,21 +761,38 @@ export default function ProfessionalProfileWizardModal({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Hoc vi {isDoctor && <span className="text-red-500">*</span>}
+                    Hoc ham/hoc vi {isDoctor && <span className="text-red-500">*</span>}
                   </label>
-                  <select
-                    value={form.degree || ''}
-                    onChange={(event) => setForm((prev) => ({ ...prev, degree: event.target.value }))}
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="">-- Chon --</option>
-                    {degrees.map((degree) => (
-                      <option key={degree.value} value={degree.value}>
-                        {degree.label}
-                      </option>
-                    ))}
-                  </select>
-                  <FieldError>{errors.degree}</FieldError>
+                  <div className="grid grid-cols-1 gap-2 rounded-md border border-slate-200 bg-white p-2 max-h-40 overflow-y-auto">
+                    {qualificationOptions.length === 0 ? (
+                      <div className="text-xs text-slate-400">Chua co danh muc hoc ham/hoc vi.</div>
+                    ) : (
+                      qualificationOptions.map((qualification) => {
+                        const checked = selectedQualificationCodes.includes(qualification.code);
+                        return (
+                          <label
+                            key={qualification.code}
+                            className={`flex items-start gap-2 rounded border p-2 text-xs ${checked ? 'border-blue-200 bg-blue-50 text-blue-800' : 'border-slate-100 text-slate-700'
+                              }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 accent-blue-600"
+                              checked={checked}
+                              onChange={(event) => toggleQualification(qualification.code, event.target.checked)}
+                            />
+                            <span className="min-w-0">
+                              <span className="block font-semibold">{qualification.name}</span>
+                              <span className="text-[10px] text-slate-500">
+                                {qualification.type === 'academic_title' ? 'Hoc ham' : 'Hoc vi'} - Uu tien {qualification.priority}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                  <FieldError>{errors.qualification_codes}</FieldError>
                 </div>
 
                 <div>
@@ -1068,7 +1142,10 @@ export default function ProfessionalProfileWizardModal({
               <div className="rounded-lg border border-slate-200 p-3 space-y-2 text-sm">
                 <div className="font-semibold text-slate-800">Tom tat chuyen mon</div>
                 <div className="text-slate-600">
-                  Hoc vi: <span className="font-medium text-slate-900">{form.degree || '--'}</span>
+                  Hoc ham/hoc vi:{' '}
+                  <span className="font-medium text-slate-900">
+                    {selectedQualificationCodes.map((code) => qualificationLabel(code, qualificationOptions)).join(', ') || '--'}
+                  </span>
                   {' - '}Kinh nghiem:{' '}
                   <span className="font-medium text-slate-900">
                     {form.years_experience ? `${form.years_experience} nam` : '--'}

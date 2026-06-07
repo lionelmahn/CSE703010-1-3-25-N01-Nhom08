@@ -187,9 +187,9 @@ export default function StaffManagement() {
 
   const accountBadge = selectedStaff?.user
     ? ACCOUNT_STATUS_BADGE[selectedStaff.user.status] || {
-        className: 'bg-slate-100 text-slate-700 border-slate-200',
-        label: selectedStaff.user.status || '—',
-      }
+      className: 'bg-slate-100 text-slate-700 border-slate-200',
+      label: selectedStaff.user.status || '—',
+    }
     : null;
 
   return (
@@ -405,10 +405,9 @@ export default function StaffManagement() {
                   <div className="flex justify-between items-start gap-2">
                     <div className="text-slate-500 text-xs mb-1">{selectedStaff.employee_code}</div>
                     <span
-                      className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
-                        STATUS_BADGE[selectedStaff.status] ||
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium border ${STATUS_BADGE[selectedStaff.status] ||
                         'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}
+                        }`}
                     >
                       {STATUS_LABEL[selectedStaff.status] || selectedStaff.status}
                     </span>
@@ -423,8 +422,8 @@ export default function StaffManagement() {
                       Cập nhật lần cuối:{' '}
                       {lastAuditLog
                         ? `${lastAuditLog.admin_name || '—'} · ${formatDateTime(
-                            lastAuditLog.created_at
-                          )}`
+                          lastAuditLog.created_at
+                        )}`
                         : formatDateTime(selectedStaff.updated_at)}
                     </p>
                   </div>
@@ -441,11 +440,10 @@ export default function StaffManagement() {
                     key={tab.id}
                     type="button"
                     onClick={() => setDetailTab(tab.id)}
-                    className={`px-3 py-2 font-medium text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
-                      detailTab === tab.id
+                    className={`px-3 py-2 font-medium text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${detailTab === tab.id
                         ? 'border-blue-600 text-blue-600'
                         : 'border-transparent text-slate-500 hover:text-slate-800'
-                    }`}
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -524,10 +522,9 @@ export default function StaffManagement() {
                     label="Trạng thái"
                     value={
                       <span
-                        className={`px-2 py-0.5 rounded text-xs font-medium border ${
-                          STATUS_BADGE[selectedStaff.status] ||
+                        className={`px-2 py-0.5 rounded text-xs font-medium border ${STATUS_BADGE[selectedStaff.status] ||
                           'bg-slate-100 text-slate-600 border-slate-200'
-                        }`}
+                          }`}
                       >
                         {STATUS_LABEL[selectedStaff.status] || selectedStaff.status}
                       </span>
@@ -565,17 +562,21 @@ export default function StaffManagement() {
               {detailTab === 'compensation' && (
                 <div className="space-y-4 mb-6 text-sm">
                   <DetailRow
-                    label="Mức lương cơ bản"
+                    label="Lương hợp đồng (HR)"
                     value={formatCurrency(selectedStaff.base_salary)}
                     bold
                   />
                   <DetailRow
-                    label="Hình thức trả lương"
+                    label="Loại lương hợp đồng"
                     value={
                       selectedStaff.salary_type
                         ? SALARY_TYPE_LABEL[selectedStaff.salary_type] || selectedStaff.salary_type
                         : '—'
                     }
+                  />
+                  <DetailRow
+                    label="Phạm vi sử dụng"
+                    value="Dữ liệu nhân sự/hợp đồng, không phải hệ số payroll"
                   />
                   <DetailRow label="Ngân hàng" value={selectedStaff.bank_name || '—'} />
                   <DetailRow

@@ -43,10 +43,13 @@ class DoctorController extends Controller
             $degree = null;
             if ($staff) {
                 foreach ($staff->professionalProfiles ?? [] as $profile) {
+                    if (! $degree && ! empty($profile->qualification_names)) {
+                        $degree = implode(', ', $profile->qualification_names);
+                    }
                     foreach ($profile->specialties ?? [] as $sp) {
                         if (! $specialty && ! empty($sp->specialty_name)) {
                             $specialty = $sp->specialty_name;
-                            $degree = $sp->degree;
+                            $degree = $degree ?: $sp->degree;
                         }
                     }
                 }

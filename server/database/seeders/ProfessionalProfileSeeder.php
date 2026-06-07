@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\ProfessionalProfile;
+use App\Models\QualificationCatalog;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\User;
@@ -95,6 +96,18 @@ class ProfessionalProfileSeeder extends Seeder
                 'file_size' => 198452,
                 'is_primary' => false,
             ]
+        );
+
+        $doctorProfile->qualificationCatalogs()->syncWithoutDetaching(
+            QualificationCatalog::query()
+                ->whereIn('code', ['thac_si', 'dai_hoc'])
+                ->get(['id'])
+                ->mapWithKeys(fn (QualificationCatalog $catalog) => [
+                    $catalog->id => [
+                        'source' => 'seeder',
+                    ],
+                ])
+                ->all()
         );
 
         $accountantProfile = ProfessionalProfile::updateOrCreate(

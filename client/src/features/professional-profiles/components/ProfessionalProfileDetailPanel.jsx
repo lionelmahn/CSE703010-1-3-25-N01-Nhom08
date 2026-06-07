@@ -96,7 +96,10 @@ export default function ProfessionalProfileDetailPanel({
       ? profile.service_scope
       : specialty?.service_scope) || [];
   const branchText = profile.branch?.name || specialty?.branch_or_room || '—';
-  const profileDegree = profile.degree || specialty?.degree;
+  const profileDegree =
+    Array.isArray(profile.qualification_names) && profile.qualification_names.length > 0
+      ? profile.qualification_names.join(', ')
+      : profile.degree || specialty?.degree;
   const profileYears =
     profile.years_experience !== null && profile.years_experience !== undefined
       ? profile.years_experience
@@ -171,11 +174,10 @@ export default function ProfessionalProfileDetailPanel({
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.id
+            className={`px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id
                 ? 'border-blue-600 text-blue-600 font-medium'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             {tab.label}
             {tab.id === 'certificates' && (profile.certificates?.length || 0) > 0 && (
@@ -193,7 +195,7 @@ export default function ProfessionalProfileDetailPanel({
                 <Field label="Chuyên khoa chính">
                   {specialty?.specialty_name || (isDoctor ? '—' : 'Nghiệp vụ chung')}
                 </Field>
-                <Field label="Học vị">{profileDegree}</Field>
+                <Field label="Học hàm/học vị">{profileDegree}</Field>
                 <Field label="Kinh nghiệm">
                   {profileYears ? `${profileYears} năm` : '—'}
                 </Field>

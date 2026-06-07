@@ -123,6 +123,9 @@ class ProfessionalProfileController extends Controller
             'status' => 'nullable|in:draft,pending',
             'notes' => 'nullable|string',
             'degree' => 'nullable|string|max:120',
+            'qualification_codes' => 'nullable|array',
+            'qualification_codes.*' => 'string|max:64',
+            'qualification_codes_payload' => 'nullable|string',
             'years_experience' => 'nullable|integer|min:0|max:80',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'service_scope_payload' => 'nullable|string',
@@ -135,7 +138,22 @@ class ProfessionalProfileController extends Controller
             'specialties' => $this->decodeJsonField($request->input('specialties_payload', '[]'), 'specialties_payload'),
             'certificates' => $this->decodeJsonField($request->input('certificates_payload', '[]'), 'certificates_payload'),
             'service_scope' => $this->decodeJsonField($request->input('service_scope_payload', '[]'), 'service_scope_payload'),
+            'qualification_codes' => $this->qualificationCodesFromRequest($request),
         ]);
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function qualificationCodesFromRequest(Request $request): array
+    {
+        if ($request->filled('qualification_codes_payload')) {
+            return $this->decodeJsonField($request->input('qualification_codes_payload'), 'qualification_codes_payload');
+        }
+
+        $codes = $request->input('qualification_codes', []);
+
+        return is_array($codes) ? array_values($codes) : [];
     }
 
     private function decodeJsonField(?string $json, string $field): array

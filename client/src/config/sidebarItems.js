@@ -222,6 +222,14 @@ export const SIDEBAR_ITEMS = [
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['payroll.service_complexity.view'],
   },
+  {
+    label: 'Cấu hình hệ số bác sĩ',
+    path: '/payroll/settings/doctor-qualification-coefficients',
+    icon: Percent,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.doctor_qualification_coefficient.view'],
+  },
 
   // -- Nhân sự ----------------------------------------------------------------
   {

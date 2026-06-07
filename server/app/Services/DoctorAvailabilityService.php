@@ -82,7 +82,7 @@ class DoctorAvailabilityService
      */
     public function validateAssignment(int $userId, Appointment $appointment, bool $ignoreSelf = true): array
     {
-        $user = User::with(['staff.professionalProfiles.specialties'])->find($userId);
+        $user = User::with(['staff.professionalProfiles.specialties', 'staff.professionalProfiles.qualificationCatalogs'])->find($userId);
         if (! $user) {
             return ['ok' => false, 'errors' => ['doctor_id' => 'VR3: Bac si khong ton tai.'], 'warnings' => []];
         }
@@ -240,6 +240,7 @@ class DoctorAvailabilityService
                 'staff.branch:id,name',
                 'staff.professionalProfiles' => fn ($q) => $q->where('status', 'approved')->where('is_active', true),
                 'staff.professionalProfiles.specialties',
+                'staff.professionalProfiles.qualificationCatalogs',
             ])
             ->orderBy('name')
             ->get();

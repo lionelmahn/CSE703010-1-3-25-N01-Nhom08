@@ -364,6 +364,26 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($uc17Ids);
         }
 
+        // UC15.4 - Thiet lap he so bac si theo hoc ham/hoc vi.
+        $uc154Slugs = [
+            'payroll.doctor_qualification_coefficient.view' => 'Xem cau hinh he so bac si theo hoc ham hoc vi',
+            'payroll.doctor_qualification_coefficient.manage' => 'Thiet lap he so bac si theo hoc ham hoc vi',
+        ];
+        $uc154Ids = [];
+        foreach ($uc154Slugs as $slug => $name) {
+            $permission = Permission::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc154Ids[] = $permission->id;
+        }
+        if ($adminRole && ! empty($uc154Ids)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc154Ids);
+        }
+        if ($accountantRole && ! empty($uc154Ids)) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc154Ids);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

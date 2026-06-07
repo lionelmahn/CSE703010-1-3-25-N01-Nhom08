@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Branch;
 use App\Models\ProfessionalProfile;
 use App\Models\ProfessionalProfileCertificate;
+use App\Models\ProfessionalProfileQualification;
 use App\Models\ProfessionalProfileSpecialty;
+use App\Models\QualificationCatalog;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\User;
@@ -13,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -22,13 +25,12 @@ class ProfessionalProfileService
     public function __construct(
         private readonly AuditLogService $auditLogService,
         private readonly ProfessionalProfileUsageChecker $usageChecker,
-    ) {
-    }
+    ) {}
 
     public function listProfiles(array $filters = [])
     {
         $query = ProfessionalProfile::query()
-            ->with(['staff.user', 'staff.branch', 'branch', 'certificates', 'specialties'])
+            ->with(['staff.user', 'staff.branch', 'branch', 'certificates', 'specialties', 'qualificationCatalogs'])
             ->withCount('certificates');
 
         if (! empty($filters['search'])) {
@@ -66,6 +68,7 @@ class ProfessionalProfileService
             'invalidator',
             'specialties',
             'certificates.specialty',
+            'qualificationCatalogs',
         ])->findOrFail($id);
     }
 
@@ -76,7 +79,7 @@ class ProfessionalProfileService
             return null;
         }
 
-        return ProfessionalProfile::with(['staff.user', 'specialties', 'certificates.specialty'])
+        return ProfessionalProfile::with(['staff.user', 'specialties', 'certificates.specialty', 'qualificationCatalogs'])
             ->where('staff_id', $staff->id)
             ->where('profile_role', $staff->role_slug)
             ->first();
@@ -95,14 +98,18 @@ class ProfessionalProfileService
                 ->get(['id', 'employee_code', 'full_name', 'role_slug', 'email', 'status', 'avatar', 'branch_id']),
             'services' => Service::query()->orderBy('name')->get(['id', 'name', 'price']),
             'branches' => Branch::query()->where('status', 'active')->orderBy('name')->get(['id', 'code', 'name', 'city']),
-            'degrees' => [
-                ['value' => 'cu_nhan', 'label' => 'Cử nhân'],
-                ['value' => 'thac_si', 'label' => 'Thạc sĩ'],
-                ['value' => 'tien_si', 'label' => 'Tiến sĩ'],
-                ['value' => 'pgs_ts', 'label' => 'PGS.TS'],
-                ['value' => 'gs_ts', 'label' => 'GS.TS'],
-            ],
+            'qualifications' => $this->qualificationOptions()->values()->all(),
         ];
+    }
+
+    private function qualificationOptions(): Collection
+    {
+        return QualificationCatalog::query()
+            ->where('status', QualificationCatalog::STATUS_ACTIVE)
+            ->orderBy('priority')
+            ->orderBy('name')
+            ->get()
+            ->map(fn(QualificationCatalog $qualification) => $qualification->toPayrollOption());
     }
 
     public function createProfile(array $payload, array $uploadedFiles, User $actor): ProfessionalProfile
@@ -114,6 +121,12 @@ class ProfessionalProfileService
 
             $specialtiesPayload = $this->normalizeSpecialties($payload['specialties'] ?? []);
             $certificatesPayload = $this->normalizeCertificates($payload['certificates'] ?? []);
+            $qualificationCodes = $this->qualificationCodesFromPayload(
+                $payload['qualification_codes'] ?? [],
+                $payload['degree'] ?? null,
+                $specialtiesPayload,
+                $staff
+            );
             $this->assertProfilePayload($payload['profile_role'], $specialtiesPayload, $certificatesPayload);
 
             $profile = ProfessionalProfile::create([
@@ -121,7 +134,7 @@ class ProfessionalProfileService
                 'profile_role' => $payload['profile_role'],
                 'status' => $payload['status'] ?? ProfessionalProfile::STATUS_DRAFT,
                 'notes' => $payload['notes'] ?? null,
-                'degree' => $payload['degree'] ?? null,
+                'degree' => $this->legacyDegreeForPayload($payload['degree'] ?? null, $qualificationCodes),
                 'years_experience' => $payload['years_experience'] ?? null,
                 'branch_id' => $payload['branch_id'] ?? null,
                 'service_scope' => $this->normalizeServiceScope($payload['service_scope'] ?? null),
@@ -130,6 +143,7 @@ class ProfessionalProfileService
             ]);
 
             $this->syncProfileRelations($profile, $payload['profile_role'], $specialtiesPayload, $certificatesPayload, $uploadedFiles);
+            $this->syncProfileQualifications($profile, $qualificationCodes);
             $this->refreshComputedStatus($profile);
 
             $this->auditLogService->log($actor, 'professional_profile.created', [
@@ -160,12 +174,23 @@ class ProfessionalProfileService
 
             $specialtiesPayload = $this->normalizeSpecialties($payload['specialties'] ?? $profile->specialties->toArray());
             $certificatesPayload = $this->normalizeCertificates($payload['certificates'] ?? $profile->certificates->toArray());
+            $shouldSyncQualifications = array_key_exists('qualification_codes', $payload) || array_key_exists('degree', $payload);
+            $qualificationCodes = $shouldSyncQualifications
+                ? $this->qualificationCodesFromPayload(
+                    $payload['qualification_codes'] ?? [],
+                    $payload['degree'] ?? $profile->degree,
+                    $specialtiesPayload,
+                    $staff
+                )
+                : null;
             $this->assertProfilePayload($nextRole, $specialtiesPayload, $certificatesPayload, $profile->id);
 
             $profile->fill([
                 'profile_role' => $nextRole,
                 'notes' => $payload['notes'] ?? $profile->notes,
-                'degree' => array_key_exists('degree', $payload) ? $payload['degree'] : $profile->degree,
+                'degree' => $shouldSyncQualifications
+                    ? $this->legacyDegreeForPayload($payload['degree'] ?? $profile->degree, $qualificationCodes ?? [])
+                    : $profile->degree,
                 'years_experience' => array_key_exists('years_experience', $payload) ? $payload['years_experience'] : $profile->years_experience,
                 'branch_id' => array_key_exists('branch_id', $payload) ? $payload['branch_id'] : $profile->branch_id,
                 'service_scope' => array_key_exists('service_scope', $payload)
@@ -194,6 +219,9 @@ class ProfessionalProfileService
 
             $profile->save();
             $this->syncProfileRelations($profile, $nextRole, $specialtiesPayload, $certificatesPayload, $uploadedFiles);
+            if ($shouldSyncQualifications) {
+                $this->syncProfileQualifications($profile, $qualificationCodes ?? []);
+            }
             $this->refreshComputedStatus($profile);
 
             $this->auditLogService->log($actor, $selfService ? 'professional_profile.self_updated' : 'professional_profile.updated', [
@@ -327,7 +355,7 @@ class ProfessionalProfileService
             ->whereIn('status', [ProfessionalProfile::STATUS_PENDING, ProfessionalProfile::STATUS_APPROVED])
             ->chunk(50, function (Collection $profiles) use (&$count) {
                 foreach ($profiles as $profile) {
-                    if (! $profile->certificates->contains(fn ($certificate) => $certificate->is_expired)) {
+                    if (! $profile->certificates->contains(fn($certificate) => $certificate->is_expired)) {
                         continue;
                     }
 
@@ -487,7 +515,7 @@ class ProfessionalProfileService
     {
         $profile->loadMissing('certificates');
 
-        if ($profile->certificates->contains(fn ($certificate) => $certificate->is_expired)) {
+        if ($profile->certificates->contains(fn($certificate) => $certificate->is_expired)) {
             $profile->update([
                 'status' => ProfessionalProfile::STATUS_EXPIRED,
                 'is_active' => false,
@@ -568,7 +596,7 @@ class ProfessionalProfileService
     {
         $profile->loadMissing('certificates');
 
-        if ($profile->certificates->contains(fn ($certificate) => $certificate->is_expired)) {
+        if ($profile->certificates->contains(fn($certificate) => $certificate->is_expired)) {
             throw ValidationException::withMessages([
                 'status' => 'Khong the duyet ho so co chung chi da het han.',
             ]);
@@ -579,6 +607,154 @@ class ProfessionalProfileService
     {
         $profile->loadMissing('specialties', 'certificates');
         $this->assertProfilePayload($profile->profile_role, $profile->specialties->toArray(), $profile->certificates->toArray(), $profile->id);
+    }
+
+    /**
+     * @param  array<int,mixed>  $qualificationCodes
+     * @param  array<int,array<string,mixed>>  $specialtiesPayload
+     * @return array<int,string>
+     */
+    private function qualificationCodesFromPayload(array $qualificationCodes, ?string $legacyDegree, array $specialtiesPayload, ?Staff $staff = null): array
+    {
+        $codes = $this->normalizeQualificationCodes($qualificationCodes);
+
+        if ($codes === []) {
+            $codes = array_merge($codes, $this->qualificationCodesForLegacyValue($legacyDegree));
+        }
+
+        if ($codes === []) {
+            foreach ($specialtiesPayload as $specialtyPayload) {
+                $codes = array_merge($codes, $this->qualificationCodesForLegacyValue(Arr::get($specialtyPayload, 'degree')));
+            }
+        }
+
+        if ($codes === [] && $staff) {
+            $codes = array_merge($codes, $this->qualificationCodesForLegacyValue($staff->highest_degree));
+        }
+
+        return $this->sortQualificationCodes(array_values(array_unique(array_filter($codes))));
+    }
+
+    /**
+     * @param  array<int,mixed>  $codes
+     * @return array<int,string>
+     */
+    private function normalizeQualificationCodes(array $codes): array
+    {
+        $validCodes = QualificationCatalog::query()
+            ->where('status', QualificationCatalog::STATUS_ACTIVE)
+            ->pluck('code')
+            ->all();
+
+        $normalized = collect($codes)
+            ->map(fn($code) => is_scalar($code) ? trim((string) $code) : null)
+            ->filter()
+            ->map(fn(string $code) => QualificationCatalog::normalizeLegacyCode($code))
+            ->values();
+
+        $invalid = $normalized->contains(fn(?string $code) => ! $code || ! in_array($code, $validCodes, true));
+        if ($invalid) {
+            throw ValidationException::withMessages([
+                'qualification_codes' => 'Học hàm/học vị không hợp lệ.',
+            ]);
+        }
+
+        return $normalized->filter()->unique()->values()->all();
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function qualificationCodesForLegacyValue(?string $value): array
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return [];
+        }
+
+        $slug = Str::slug($value, '_');
+        $codes = match ($slug) {
+            'giao_su', 'gs', 'gs_ts', 'gsts', 'giao_su_tien_si' => ['giao_su', 'tien_si'],
+            'pho_giao_su', 'pgs', 'pgs_ts', 'pgsts', 'pho_giao_su_tien_si' => ['pho_giao_su', 'tien_si'],
+            'tien_si', 'ts', 'bac_si_tien_si' => ['tien_si'],
+            'thac_si', 'ths', 'thac_sy', 'thac_si_bac_si' => ['thac_si'],
+            'dai_hoc', 'cu_nhan', 'bac_si', 'bac_sy', 'bs' => ['dai_hoc'],
+            default => [],
+        };
+
+        if ($codes !== []) {
+            return $this->sortQualificationCodes($codes);
+        }
+
+        $code = QualificationCatalog::normalizeLegacyCode($value);
+
+        return $code ? [$code] : [];
+    }
+
+    /**
+     * @param  array<int,string>  $codes
+     * @return array<int,string>
+     */
+    private function sortQualificationCodes(array $codes): array
+    {
+        if ($codes === []) {
+            return [];
+        }
+
+        $priority = QualificationCatalog::query()
+            ->whereIn('code', $codes)
+            ->pluck('priority', 'code');
+
+        usort($codes, fn(string $left, string $right) => ($priority[$left] ?? 99) <=> ($priority[$right] ?? 99));
+
+        return array_values(array_unique($codes));
+    }
+
+    /**
+     * @param  array<int,string>  $qualificationCodes
+     */
+    private function legacyDegreeForPayload(?string $legacyDegree, array $qualificationCodes): ?string
+    {
+        if ($qualificationCodes !== []) {
+            return $qualificationCodes[0];
+        }
+
+        return $legacyDegree;
+    }
+
+    /**
+     * @param  array<int,string>  $qualificationCodes
+     */
+    private function syncProfileQualifications(ProfessionalProfile $profile, array $qualificationCodes): void
+    {
+        $catalogs = QualificationCatalog::query()
+            ->where('status', QualificationCatalog::STATUS_ACTIVE)
+            ->whereIn('code', $qualificationCodes)
+            ->get()
+            ->keyBy('code');
+
+        $existingIds = [];
+        foreach ($qualificationCodes as $code) {
+            $catalog = $catalogs->get($code);
+            if (! $catalog) {
+                continue;
+            }
+
+            $qualification = ProfessionalProfileQualification::query()->updateOrCreate(
+                [
+                    'professional_profile_id' => $profile->id,
+                    'qualification_catalog_id' => $catalog->id,
+                ],
+                [
+                    'source' => 'manual',
+                ]
+            );
+            $existingIds[] = $qualification->id;
+        }
+
+        $profile->qualifications()
+            ->whereNotIn('id', $existingIds ?: [0])
+            ->delete();
     }
 
     private function normalizeSpecialties(array $specialties): array
@@ -594,7 +770,7 @@ class ProfessionalProfileService
                 'branch_or_room' => Arr::get($specialty, 'branch_or_room'),
                 'notes' => Arr::get($specialty, 'notes'),
             ];
-        }, array_filter($specialties, fn ($specialty) => ! empty(Arr::get($specialty, 'specialty_name')))));
+        }, array_filter($specialties, fn($specialty) => ! empty(Arr::get($specialty, 'specialty_name')))));
     }
 
     private function normalizeCertificates(array $certificates): array
@@ -614,7 +790,7 @@ class ProfessionalProfileService
                 'notes' => Arr::get($certificate, 'notes'),
                 'is_primary' => (bool) Arr::get($certificate, 'is_primary', false),
             ];
-        }, array_filter($certificates, fn ($certificate) => ! empty(Arr::get($certificate, 'certificate_name')))));
+        }, array_filter($certificates, fn($certificate) => ! empty(Arr::get($certificate, 'certificate_name')))));
     }
 
     private function normalizeServiceScope($value): ?array
@@ -633,8 +809,8 @@ class ProfessionalProfileService
         }
 
         $clean = collect($value)
-            ->map(fn ($item) => is_array($item) ? Arr::get($item, 'name') ?? Arr::get($item, 'value') : $item)
-            ->map(fn ($item) => is_scalar($item) ? trim((string) $item) : null)
+            ->map(fn($item) => is_array($item) ? Arr::get($item, 'name') ?? Arr::get($item, 'value') : $item)
+            ->map(fn($item) => is_scalar($item) ? trim((string) $item) : null)
             ->filter()
             ->unique()
             ->values()
@@ -645,7 +821,7 @@ class ProfessionalProfileService
 
     private function snapshot(ProfessionalProfile $profile): array
     {
-        $profile->loadMissing('specialties', 'certificates');
+        $profile->loadMissing('specialties', 'certificates', 'qualificationCatalogs');
 
         return [
             'id' => $profile->id,
@@ -654,6 +830,8 @@ class ProfessionalProfileService
             'status' => $profile->status,
             'notes' => $profile->notes,
             'degree' => $profile->degree,
+            'qualification_codes' => $profile->qualification_codes,
+            'qualification_names' => $profile->qualification_names,
             'years_experience' => $profile->years_experience,
             'branch_id' => $profile->branch_id,
             'service_scope' => $profile->service_scope,
@@ -661,7 +839,7 @@ class ProfessionalProfileService
             'submitted_at' => $profile->submitted_at?->toISOString(),
             'approved_at' => $profile->approved_at?->toISOString(),
             'invalidated_at' => $profile->invalidated_at?->toISOString(),
-            'specialties' => $profile->specialties->map(fn ($specialty) => [
+            'specialties' => $profile->specialties->map(fn($specialty) => [
                 'id' => $specialty->id,
                 'specialty_name' => $specialty->specialty_name,
                 'degree' => $specialty->degree,
@@ -670,7 +848,7 @@ class ProfessionalProfileService
                 'branch_or_room' => $specialty->branch_or_room,
                 'notes' => $specialty->notes,
             ])->values()->all(),
-            'certificates' => $profile->certificates->map(fn ($certificate) => [
+            'certificates' => $profile->certificates->map(fn($certificate) => [
                 'id' => $certificate->id,
                 'certificate_type' => $certificate->certificate_type,
                 'certificate_name' => $certificate->certificate_name,
