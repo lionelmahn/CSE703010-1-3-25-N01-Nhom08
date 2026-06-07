@@ -384,6 +384,26 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($uc154Ids);
         }
 
+        // UC16 - Lap phieu luong cho mot bac si trong thang.
+        $uc16SalarySlipSlugs = [
+            'payroll.salary_slip.view' => 'Xem phieu luong bac si',
+            'payroll.salary_slip.manage' => 'Lap, tinh va chot phieu luong bac si',
+        ];
+        $uc16SalarySlipIds = [];
+        foreach ($uc16SalarySlipSlugs as $slug => $name) {
+            $permission = Permission::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc16SalarySlipIds[] = $permission->id;
+        }
+        if ($adminRole && ! empty($uc16SalarySlipIds)) {
+            $adminRole->permissions()->syncWithoutDetaching($uc16SalarySlipIds);
+        }
+        if ($accountantRole && ! empty($uc16SalarySlipIds)) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc16SalarySlipIds);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

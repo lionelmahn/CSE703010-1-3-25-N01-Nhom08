@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ReceptionController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\RevenueReportController;
+use App\Http\Controllers\Api\SalarySlipController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServiceComplexityController;
@@ -431,6 +432,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payroll/doctor-qualification-coefficients', [DoctorQualificationCoefficientController::class, 'store']);
         Route::post('/payroll/doctor-qualification-coefficients/bulk', [DoctorQualificationCoefficientController::class, 'bulkStore']);
         Route::post('/payroll/doctor-qualification-coefficients/{id}/stop', [DoctorQualificationCoefficientController::class, 'stop'])->whereNumber('id');
+    });
+
+    // UC16 - Lap phieu luong cho mot bac si trong thang.
+    Route::middleware('permission:payroll.salary_slip.view')->group(function () {
+        Route::get('/payroll/salary-slips', [SalarySlipController::class, 'index']);
+        Route::get('/payroll/salary-slips/doctors', [SalarySlipController::class, 'doctors']);
+        Route::get('/payroll/salary-slips/preview', [SalarySlipController::class, 'preview']);
+        Route::get('/payroll/salary-slips/{id}', [SalarySlipController::class, 'show'])->whereNumber('id');
+        Route::get('/payroll/salary-slips/{id}/audit-logs', [SalarySlipController::class, 'auditLogs'])->whereNumber('id');
+    });
+    Route::middleware('permission:payroll.salary_slip.manage')->group(function () {
+        Route::post('/payroll/salary-slips', [SalarySlipController::class, 'store']);
+        Route::post('/payroll/salary-slips/{id}/recalculate', [SalarySlipController::class, 'recalculate'])->whereNumber('id');
+        Route::post('/payroll/salary-slips/{id}/finalize', [SalarySlipController::class, 'finalize'])->whereNumber('id');
     });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.

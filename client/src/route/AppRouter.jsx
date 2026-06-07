@@ -26,6 +26,7 @@ import HourlyRateSettings from '@/page/HourlyRateSettings';
 import ShiftCoefficientSettings from '@/page/ShiftCoefficientSettings';
 import ServiceComplexitySettings from '@/page/ServiceComplexitySettings';
 import DoctorQualificationCoefficientSettings from '@/page/DoctorQualificationCoefficientSettings';
+import SalarySlipManagement from '@/page/SalarySlipManagement';
 import ToothStatusManagement from '@/page/ToothStatusManagement';
 import SystemSettings from '@/page/SystemSettings';
 import PatientList from '@/page/PatientList';
@@ -120,6 +121,7 @@ const AppRouter = () => {
         <Route path="payroll/settings/shift-coefficients" element={<PermissionRoute permission="payroll.shift_coefficient.view"><ShiftCoefficientSettings /></PermissionRoute>} />
         <Route path="payroll/settings/service-complexity" element={<PermissionRoute permission="payroll.service_complexity.view"><ServiceComplexitySettings /></PermissionRoute>} />
         <Route path="payroll/settings/doctor-qualification-coefficients" element={<PermissionRoute permission="payroll.doctor_qualification_coefficient.view"><DoctorQualificationCoefficientSettings /></PermissionRoute>} />
+        <Route path="payroll/salary-slips" element={<PermissionRoute permission="payroll.salary_slip.view"><SalarySlipManagement /></PermissionRoute>} />
         <Route path="my-professional-profile" element={<MyProfessionalProfile />} />
         <Route path="work-schedules" element={<PermissionRoute permission="schedules.view"><WorkScheduleManagement /></PermissionRoute>} />
         <Route path="my-work-schedule" element={<MyWorkSchedule />} />

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Mail,
   Percent,
+  ReceiptText,
   Settings,
   ShieldCheck,
   Stethoscope,
@@ -229,6 +230,14 @@ export const SIDEBAR_ITEMS = [
     group: 'finance',
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['payroll.doctor_qualification_coefficient.view'],
+  },
+  {
+    label: 'Lập phiếu lương',
+    path: '/payroll/salary-slips',
+    icon: ReceiptText,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.salary_slip.view'],
   },
 
   // -- Nhân sự ----------------------------------------------------------------
