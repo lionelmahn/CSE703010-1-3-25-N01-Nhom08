@@ -36,6 +36,7 @@ import MedicalRecords from '@/page/MedicalRecords';
 import MedicalRecordsWorkspace from '@/page/MedicalRecordsWorkspace';
 import InvoiceManagement from '@/page/InvoiceManagement';
 import RevenueReport from '@/page/RevenueReport';
+import SalaryReport from '@/page/SalaryReport';
 import MyAppointments from '@/page/MyAppointments';
 import HealthRecords from '@/page/HealthRecords';
 import MyProfessionalProfile from '@/page/MyProfessionalProfile';
@@ -122,6 +123,7 @@ const AppRouter = () => {
         <Route path="payroll/settings/service-complexity" element={<PermissionRoute permission="payroll.service_complexity.view"><ServiceComplexitySettings /></PermissionRoute>} />
         <Route path="payroll/settings/doctor-qualification-coefficients" element={<PermissionRoute permission="payroll.doctor_qualification_coefficient.view"><DoctorQualificationCoefficientSettings /></PermissionRoute>} />
         <Route path="payroll/salary-slips" element={<PermissionRoute permission="payroll.salary_slip.view"><SalarySlipManagement /></PermissionRoute>} />
+        <Route path="payroll/salary-report" element={<PermissionRoute permission="payroll.salary_report.view"><SalaryReport /></PermissionRoute>} />
         <Route path="my-professional-profile" element={<MyProfessionalProfile />} />
         <Route path="work-schedules" element={<PermissionRoute permission="schedules.view"><WorkScheduleManagement /></PermissionRoute>} />
         <Route path="my-work-schedule" element={<MyWorkSchedule />} />

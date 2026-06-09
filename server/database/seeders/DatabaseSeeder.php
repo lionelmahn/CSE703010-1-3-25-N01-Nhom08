@@ -25,5 +25,11 @@ class DatabaseSeeder extends Seeder
         $this->call(PatientSeeder::class);
         $this->call(NotificationTemplateSeeder::class);
         $this->call(DemoDataSeeder::class);
+
+        // Du lieu mau mo rong (mau "SMP") - giu nguyen user goc, them du lieu de test.
+        $this->call(SamplePayrollConfigSeeder::class);
+        $this->call(SampleStaffSeeder::class);
+        $this->call(SamplePatientSeeder::class);
+        $this->call(SampleScheduleClinicalSeeder::class);
     }
 }

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ReceptionController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\RevenueReportController;
+use App\Http\Controllers\Api\SalaryReportController;
 use App\Http\Controllers\Api\SalarySlipController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
 use App\Http\Controllers\Api\ServiceCatalogController;
@@ -446,6 +447,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payroll/salary-slips', [SalarySlipController::class, 'store']);
         Route::post('/payroll/salary-slips/{id}/recalculate', [SalarySlipController::class, 'recalculate'])->whereNumber('id');
         Route::post('/payroll/salary-slips/{id}/finalize', [SalarySlipController::class, 'finalize'])->whereNumber('id');
+    });
+
+    // UC17 - Bao cao tien luong tat ca bac si trong mot thang (doc tu UC16).
+    Route::middleware('permission:payroll.salary_report.view')->prefix('reports/salary')->group(function () {
+        Route::get('/options', [SalaryReportController::class, 'options']);
+        Route::get('/summary', [SalaryReportController::class, 'summary']);
+        Route::get('/doctors', [SalaryReportController::class, 'rows']);
+        Route::get('/export', [SalaryReportController::class, 'export'])
+            ->middleware('permission:payroll.salary_report.export');
+    });
+    // Lap/tinh lai hang loat - ghi phieu UC16 nen dung quyen quan ly phieu luong.
+    Route::middleware('permission:payroll.salary_slip.manage')->prefix('reports/salary')->group(function () {
+        Route::post('/bulk-create', [SalaryReportController::class, 'bulkCreate']);
+        Route::post('/bulk-recalculate', [SalaryReportController::class, 'bulkRecalculate']);
     });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.

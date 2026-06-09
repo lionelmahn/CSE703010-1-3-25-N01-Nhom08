@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,9 @@ const SalarySlipManagement = () => {
 
     const [recent, setRecent] = useState([]);
 
+    const [searchParams, setSearchParams] = useSearchParams();
+    const didInitFromQuery = useRef(false);
+
     const slipStatus = view?.existing_slip_status || 'none';
     const hasSlip = Boolean(view?.existing_slip_id);
 
@@ -54,6 +58,22 @@ const SalarySlipManagement = () => {
         loadRecent();
     }, [loadRecent]);
 
+    // Drill-down tu UC17: ?staff_id=&period_month=&period_year= -> tu nap workspace.
+    useEffect(() => {
+        if (didInitFromQuery.current) return;
+        const staffId = Number(searchParams.get('staff_id'));
+        if (!staffId) return;
+        didInitFromQuery.current = true;
+        const m = Number(searchParams.get('period_month')) || month;
+        const y = Number(searchParams.get('period_year')) || year;
+        setMonth(m);
+        setYear(y);
+        setSelectedDoctor({ id: staffId });
+        loadWorkspace(staffId, m, y);
+        setSearchParams({}, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
     const loadWorkspace = useCallback(
         async (staffId, targetMonth, targetYear) => {
             if (!staffId) {
@@ -68,6 +88,12 @@ const SalarySlipManagement = () => {
                     period_year: targetYear,
                 });
                 setView(data?.data || null);
+                // Bo sung ten/ma bac si khi mo tu drill-down UC17 (selectedDoctor chi co id).
+                if (data?.data?.staff) {
+                    setSelectedDoctor((prev) =>
+                        prev && prev.id === data.data.staff.id && !prev.full_name ? data.data.staff : prev,
+                    );
+                }
             } catch (err) {
                 setView(null);
                 toast({

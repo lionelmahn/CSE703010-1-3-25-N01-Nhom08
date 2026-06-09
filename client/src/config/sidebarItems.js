@@ -6,6 +6,7 @@ import {
   ClipboardList,
   CreditCard,
   DollarSign,
+  FileBarChart,
   FileText,
   Inbox,
   LayoutDashboard,
@@ -238,6 +239,14 @@ export const SIDEBAR_ITEMS = [
     group: 'finance',
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['payroll.salary_slip.view'],
+  },
+  {
+    label: 'Báo cáo lương tháng',
+    path: '/payroll/salary-report',
+    icon: FileBarChart,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.salary_report.view'],
   },
 
   // -- Nhân sự ----------------------------------------------------------------
