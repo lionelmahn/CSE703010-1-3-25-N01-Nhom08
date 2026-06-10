@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ReceptionController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\RevenueReportController;
+use App\Http\Controllers\Api\SalaryAnnualReportController;
 use App\Http\Controllers\Api\SalaryReportController;
 use App\Http\Controllers\Api\SalarySlipController;
 use App\Http\Controllers\Api\ServiceAttachmentController;
@@ -462,6 +463,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bulk-create', [SalaryReportController::class, 'bulkCreate']);
         Route::post('/bulk-recalculate', [SalaryReportController::class, 'bulkRecalculate']);
     });
+
+    // UC18 - Bao cao tien luong mot bac si trong mot nam (doc tu UC16).
+    // Quyen view HOAC view_own deu vao duoc; scoping theo bac si o controller (VR9).
+    Route::middleware('permission:payroll.salary_report_annual.view,payroll.salary_report_annual.view_own')
+        ->prefix('reports/salary-annual')->group(function () {
+            Route::get('/options', [SalaryAnnualReportController::class, 'options']);
+            Route::get('/summary', [SalaryAnnualReportController::class, 'summary']);
+            Route::get('/months', [SalaryAnnualReportController::class, 'months']);
+            Route::get('/export', [SalaryAnnualReportController::class, 'export'])
+                ->middleware('permission:payroll.salary_report_annual.export,payroll.salary_report_annual.export_own');
+        });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.
     Route::middleware('permission:reports.view')->prefix('reports/revenue')->group(function () {

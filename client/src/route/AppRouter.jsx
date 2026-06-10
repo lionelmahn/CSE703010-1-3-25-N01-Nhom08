@@ -37,6 +37,7 @@ import MedicalRecordsWorkspace from '@/page/MedicalRecordsWorkspace';
 import InvoiceManagement from '@/page/InvoiceManagement';
 import RevenueReport from '@/page/RevenueReport';
 import SalaryReport from '@/page/SalaryReport';
+import SalaryAnnualReport from '@/page/SalaryAnnualReport';
 import MyAppointments from '@/page/MyAppointments';
 import HealthRecords from '@/page/HealthRecords';
 import MyProfessionalProfile from '@/page/MyProfessionalProfile';
@@ -57,7 +58,11 @@ const PermissionRoute = ({ permission, children }) => {
   const { hasPermission, userRole } = useAuth();
 
   if (userRole === 'admin') return children;
-  if (permission && !hasPermission(permission)) {
+  // `permission` co the la 1 slug hoac mang slug (chi can khop 1 - any-of).
+  const allowed = Array.isArray(permission)
+    ? permission.some((p) => hasPermission(p))
+    : !permission || hasPermission(permission);
+  if (!allowed) {
     return <div className="p-10 text-center font-medium text-red-500">Ban khong co quyen truy cap trang nay.</div>;
   }
   return children;
@@ -124,6 +129,7 @@ const AppRouter = () => {
         <Route path="payroll/settings/doctor-qualification-coefficients" element={<PermissionRoute permission="payroll.doctor_qualification_coefficient.view"><DoctorQualificationCoefficientSettings /></PermissionRoute>} />
         <Route path="payroll/salary-slips" element={<PermissionRoute permission="payroll.salary_slip.view"><SalarySlipManagement /></PermissionRoute>} />
         <Route path="payroll/salary-report" element={<PermissionRoute permission="payroll.salary_report.view"><SalaryReport /></PermissionRoute>} />
+        <Route path="payroll/salary-annual-report" element={<PermissionRoute permission={['payroll.salary_report_annual.view', 'payroll.salary_report_annual.view_own']}><SalaryAnnualReport /></PermissionRoute>} />
         <Route path="my-professional-profile" element={<MyProfessionalProfile />} />
         <Route path="work-schedules" element={<PermissionRoute permission="schedules.view"><WorkScheduleManagement /></PermissionRoute>} />
         <Route path="my-work-schedule" element={<MyWorkSchedule />} />

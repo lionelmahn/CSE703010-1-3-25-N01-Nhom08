@@ -424,6 +424,41 @@ class PermissionSeeder extends Seeder
             $accountantRole->permissions()->syncWithoutDetaching($uc17SalaryReportIds);
         }
 
+        // UC18 - Bao cao tien luong mot bac si trong mot nam (doc tu UC16).
+        $uc18AnnualReportSlugs = [
+            'payroll.salary_report_annual.view' => 'Xem bao cao luong nam cua bac si',
+            'payroll.salary_report_annual.export' => 'Xuat/in bao cao luong nam',
+            'payroll.salary_report_annual.view_own' => 'Xem bao cao luong nam cua chinh minh',
+            'payroll.salary_report_annual.export_own' => 'Xuat/in bao cao luong nam cua chinh minh',
+        ];
+        $uc18AnnualReportIds = [];
+        foreach ($uc18AnnualReportSlugs as $slug => $name) {
+            $permission = Permission::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc18AnnualReportIds[$slug] = $permission->id;
+        }
+        // Admin + Ke toan: xem/xuat bao cao nam cua moi bac si.
+        $uc18ManageIds = [
+            $uc18AnnualReportIds['payroll.salary_report_annual.view'],
+            $uc18AnnualReportIds['payroll.salary_report_annual.export'],
+        ];
+        if ($adminRole) {
+            $adminRole->permissions()->syncWithoutDetaching($uc18ManageIds);
+        }
+        if ($accountantRole) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc18ManageIds);
+        }
+        // Bac si: chi xem/xuat bao cao nam cua chinh minh (A4/VR9).
+        $uc18OwnIds = [
+            $uc18AnnualReportIds['payroll.salary_report_annual.view_own'],
+            $uc18AnnualReportIds['payroll.salary_report_annual.export_own'],
+        ];
+        if ($doctorRole) {
+            $doctorRole->permissions()->syncWithoutDetaching($uc18OwnIds);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

@@ -263,6 +263,41 @@ class DoctorQualificationCoefficientService
     }
 
     /**
+     * Hoc ham (academic_title) + hoc vi (degree) cua bac si de hien thi, lay tu
+     * ho so nhan su (qualificationInputsForStaff: profile da duyet -> fallback
+     * Staff.highest_degree). Vd: "Pho giao su - Tien si".
+     *
+     * @return array{academic_title:?string,degree:?string,display:?string}
+     */
+    public function academicForStaff(Staff $staff): array
+    {
+        $titles = [];
+        $degrees = [];
+
+        foreach ($this->qualificationInputsForStaff($staff) as $code) {
+            $qualification = DoctorQualificationCoefficient::qualificationByCode($code);
+            if (! $qualification) {
+                continue;
+            }
+            if (($qualification['type'] ?? null) === QualificationCatalog::TYPE_ACADEMIC_TITLE) {
+                $titles[] = $qualification['name'];
+            } else {
+                $degrees[] = $qualification['name'];
+            }
+        }
+
+        $academicTitle = $titles === [] ? null : implode(', ', array_unique($titles));
+        $degree = $degrees === [] ? null : implode(', ', array_unique($degrees));
+        $display = implode(' – ', array_filter([$academicTitle, $degree]));
+
+        return [
+            'academic_title' => $academicTitle,
+            'degree' => $degree,
+            'display' => $display !== '' ? $display : null,
+        ];
+    }
+
+    /**
      * @param  array<string,mixed>  $data
      */
     public function create(array $data, ?User $actor): DoctorQualificationCoefficient

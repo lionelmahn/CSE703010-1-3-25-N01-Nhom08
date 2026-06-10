@@ -248,6 +248,14 @@ export const SIDEBAR_ITEMS = [
     roles: ['admin', 'ke_toan'],
     requiredPermissions: ['payroll.salary_report.view'],
   },
+  {
+    label: 'Báo cáo lương năm',
+    path: '/payroll/salary-annual-report',
+    icon: FileBarChart,
+    group: 'finance',
+    roles: ['admin', 'ke_toan'],
+    requiredPermissions: ['payroll.salary_report_annual.view', 'payroll.salary_report_annual.view_own'],
+  },
 
   // -- Nhân sự ----------------------------------------------------------------
   {
