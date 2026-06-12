@@ -12,6 +12,7 @@ const ScheduleWeekGrid = ({
   onPrev,
   onToday,
   onNext,
+  onEmptyCellClick,
   loading,
 }) => {
   const start = weekDays[0];
@@ -69,9 +70,8 @@ const ScheduleWeekGrid = ({
                 return (
                   <th
                     key={toYmd(d)}
-                    className={`p-2 border-r font-medium ${
-                      isSunday ? 'text-red-500 bg-red-50/30' : ''
-                    }`}
+                    className={`p-2 border-r font-medium ${isSunday ? 'text-red-500 bg-red-50/30' : ''
+                      }`}
                   >
                     {WEEKDAY_LABEL[dayIdx]}<br />
                     <span className="font-normal">
@@ -120,7 +120,19 @@ const ScheduleWeekGrid = ({
                       return (
                         <td key={key} className="p-1 border-r align-top min-w-[110px]">
                           {cells.length === 0 ? (
-                            <div className="text-center text-gray-300 text-xs py-2">Nghỉ</div>
+                            onEmptyCellClick ? (
+                              <button
+                                type="button"
+                                onClick={() => onEmptyCellClick(row.staff.id, key)}
+                                className="group w-full text-center text-gray-300 text-xs py-2 rounded hover:bg-blue-50 hover:text-blue-600"
+                                title="Thêm ca cho nhân sự này"
+                              >
+                                <span className="group-hover:hidden">Nghỉ</span>
+                                <span className="hidden group-hover:inline">+ Thêm</span>
+                              </button>
+                            ) : (
+                              <div className="text-center text-gray-300 text-xs py-2">Nghỉ</div>
+                            )
                           ) : (
                             <div className="flex flex-col gap-1">
                               {cells.map((s) => (

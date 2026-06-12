@@ -27,9 +27,14 @@ class DatabaseSeeder extends Seeder
         $this->call(DemoDataSeeder::class);
 
         // Du lieu mau mo rong (mau "SMP") - giu nguyen user goc, them du lieu de test.
-        $this->call(SamplePayrollConfigSeeder::class);
-        $this->call(SampleStaffSeeder::class);
-        $this->call(SamplePatientSeeder::class);
-        $this->call(SampleScheduleClinicalSeeder::class);
+        // Trai ~2 nam, phu moi nghiep vu + moi trang thai, noi dung thuc te.
+        $this->call(SamplePayrollConfigSeeder::class);   // cau hinh luong (hieu luc tu dau cua so)
+        $this->call(SampleStaffSeeder::class);           // bac si / le tan / ke toan
+        $this->call(SamplePatientSeeder::class);         // 100 benh nhan
+        $this->call(SampleScheduleClinicalSeeder::class);// ca lam + phien kham + hoa don + thanh toan (24 thang)
+        $this->call(SampleSalarySlipSeeder::class);      // phieu luong moi bac si x moi thang
+        $this->call(SampleAppointmentStatesSeeder::class);// lich hen moi trang thai + hang doi
+        $this->call(SampleScheduleRequestsSeeder::class);// don nghi phep + doi ca
+        $this->call(SampleOnlineBookingSeeder::class);   // yeu cau dat lich online moi trang thai
     }
 }

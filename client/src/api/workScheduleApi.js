@@ -4,6 +4,7 @@ const workScheduleApi = {
   list: (params = {}) => axiosClient.get('/work-schedules', { params }),
   show: (id) => axiosClient.get(`/work-schedules/${id}`),
   create: (data) => axiosClient.post('/work-schedules', data),
+  bulkCreate: (data) => axiosClient.post('/work-schedules/bulk', data),
   update: (id, data) => axiosClient.put(`/work-schedules/${id}`, data),
   cancel: (id, cancel_reason) =>
     axiosClient.delete(`/work-schedules/${id}`, { data: { cancel_reason } }),

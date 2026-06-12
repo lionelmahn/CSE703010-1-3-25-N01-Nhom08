@@ -137,6 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Work Schedule Management (UC3.3)
         Route::get('/work-schedules', [WorkScheduleController::class, 'index']);
         Route::post('/work-schedules', [WorkScheduleController::class, 'store']);
+        Route::post('/work-schedules/bulk', [WorkScheduleController::class, 'bulkStore']);
         Route::post('/work-schedules/copy', [WorkScheduleController::class, 'copy']);
         Route::get('/work-schedules/branch-stats', [WorkScheduleController::class, 'branchStats']);
         Route::get('/work-schedules/audit-logs', [WorkScheduleController::class, 'auditLogs']);

@@ -358,12 +358,14 @@ class ExaminationService
             $session = ExaminationSession::query()->lockForUpdate()->findOrFail($id);
             $this->assertEditable($session);
 
-            // AC28 optimistic locking.
+            // AC28 optimistic locking - so sanh theo thoi diem thuc (dong nhat
+            // ve giay), tranh lech do offset mui gio giua JSON (UTC/Z) va gio
+            // ung dung (+07:00). So sanh chuoi toIso8601String() se luon lech
+            // vi client gui gio UTC con server giu gio dia phuong.
             $clientLastUpdated = $payload['last_updated_at'] ?? null;
-            if ($clientLastUpdated) {
-                $clientTs = Carbon::parse($clientLastUpdated)->toIso8601String();
-                $serverTs = optional($session->updated_at)->toIso8601String();
-                if ($serverTs && $clientTs && $clientTs !== $serverTs) {
+            if ($clientLastUpdated && $session->updated_at) {
+                $clientTs = Carbon::parse($clientLastUpdated)->startOfSecond();
+                if (! $clientTs->equalTo($session->updated_at->copy()->startOfSecond())) {
                     throw ValidationException::withMessages([
                         'last_updated_at' => 'Du lieu da bi thay doi boi nguoi khac. Vui long tai lai (AC28).',
                     ])->status(409);

@@ -8,6 +8,7 @@ use App\Models\QualificationCatalog;
 use App\Models\Service;
 use App\Models\ServiceComplexityCoefficient;
 use App\Models\ShiftCoefficient;
+use Database\Seeders\Support\SampleData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -27,7 +28,9 @@ class SamplePayrollConfigSeeder extends Seeder
 {
     public function run(): void
     {
-        $effectiveFrom = Carbon::now('Asia/Ho_Chi_Minh')->subMonthNoOverflow()->startOfMonth();
+        // Hieu luc tu dau cua so ~2 nam => tinh luong ra so khac 0 cho MOI thang
+        // trong cua so (phuc vu bao cao luong theo nam UC18/UC19).
+        $effectiveFrom = SampleData::windowStart();
 
         $this->seedHourlyRate($effectiveFrom);
         $this->seedShiftCoefficients($effectiveFrom);

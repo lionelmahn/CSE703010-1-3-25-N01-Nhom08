@@ -197,6 +197,73 @@ class WorkScheduleTest extends TestCase
         ]);
     }
 
+    public function test_bulk_create_assigns_many_staff_across_many_dates_and_derives_work_role(): void
+    {
+        $admin = $this->createAdmin();
+        $reception = $this->createStaff('le_tan', 'LT10');
+        $accountant = $this->createStaff('ke_toan', 'KT10');
+        $doctor = $this->createStaff('bac_si', 'BS10');
+        $this->createApprovedProfile($doctor);
+
+        Sanctum::actingAs($admin);
+
+        $d1 = now()->addDay()->toDateString();
+        $d2 = now()->addDays(2)->toDateString();
+
+        $res = $this->postJson('/api/work-schedules/bulk', [
+            'staff_ids' => [$reception->id, $accountant->id, $doctor->id],
+            'work_dates' => [$d1, $d2],
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'doctor_sub_role' => 'doctor_consult',
+            'skip_conflicts' => true,
+        ])->assertCreated();
+
+        // 3 staff x 2 dates = 6
+        $this->assertSame(6, $res->json('created'));
+        $this->assertSame(0, $res->json('skipped'));
+
+        // work_role derived per role_slug
+        $this->assertDatabaseHas('work_schedules', [
+            'staff_id' => $reception->id, 'work_date' => $d1, 'work_role' => 'reception',
+        ]);
+        $this->assertDatabaseHas('work_schedules', [
+            'staff_id' => $accountant->id, 'work_date' => $d2, 'work_role' => 'accountant',
+        ]);
+        $this->assertDatabaseHas('work_schedules', [
+            'staff_id' => $doctor->id, 'work_date' => $d1, 'work_role' => 'doctor_consult',
+        ]);
+    }
+
+    public function test_bulk_create_skips_invalid_rows_and_creates_the_rest(): void
+    {
+        $admin = $this->createAdmin();
+        $valid = $this->createStaff('le_tan', 'LT11');
+        $doctorNoProfile = $this->createStaff('bac_si', 'BS11'); // E3 -> skipped
+
+        Sanctum::actingAs($admin);
+
+        $date = now()->addDay()->toDateString();
+        $res = $this->postJson('/api/work-schedules/bulk', [
+            'staff_ids' => [$valid->id, $doctorNoProfile->id],
+            'work_dates' => [$date],
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'skip_conflicts' => true,
+        ])->assertCreated();
+
+        $this->assertSame(1, $res->json('created'));
+        $this->assertSame(1, $res->json('skipped'));
+        $this->assertSame($doctorNoProfile->id, $res->json('conflicts.0.staff_id'));
+
+        $this->assertDatabaseHas('work_schedules', [
+            'staff_id' => $valid->id, 'work_date' => $date,
+        ]);
+        $this->assertDatabaseMissing('work_schedules', [
+            'staff_id' => $doctorNoProfile->id,
+        ]);
+    }
+
     private function createAdmin(): User
     {
         $user = User::factory()->create([

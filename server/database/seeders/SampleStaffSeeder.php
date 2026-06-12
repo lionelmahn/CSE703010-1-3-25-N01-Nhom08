@@ -8,6 +8,7 @@ use App\Models\QualificationCatalog;
 use App\Models\Role;
 use App\Models\Staff;
 use App\Models\User;
+use Database\Seeders\Support\SampleData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,9 @@ class SampleStaffSeeder extends Seeder
 
     public function run(): void
     {
+        // Vao lam TRUOC dau cua so ~2 nam de co tham nien xuyen suot cua so du lieu.
+        $joinBase = SampleData::windowStart()->copy()->subMonthsNoOverflow(3);
+
         $branchIds = Branch::pluck('id', 'code');
         $branchCodes = $branchIds->keys()->values()->all();
         if (empty($branchCodes)) {
@@ -69,7 +73,7 @@ class SampleStaffSeeder extends Seeder
                     'email' => 'doctor'.$i.'@dental.com',
                     'phone' => '09120'.str_pad((string) $i, 5, '0', STR_PAD_LEFT),
                     'role_slug' => 'bac_si',
-                    'join_date' => Carbon::create(2024, ($i % 12) + 1, 10)->toDateString(),
+                    'join_date' => $joinBase->copy()->subMonthsNoOverflow($i % 12)->toDateString(),
                     'status' => 'working',
                     'branch_id' => $branchIds[$branchCode],
                     'gender' => $i % 2 === 0 ? 'female' : 'male',
@@ -100,7 +104,7 @@ class SampleStaffSeeder extends Seeder
                     'email' => 'reception'.$i.'@dental.com',
                     'phone' => '09130'.str_pad((string) $i, 5, '0', STR_PAD_LEFT),
                     'role_slug' => 'le_tan',
-                    'join_date' => '2024-05-01',
+                    'join_date' => $joinBase->toDateString(),
                     'status' => 'working',
                     'branch_id' => $branchIds[$branchCode],
                     'gender' => 'female',
@@ -123,7 +127,7 @@ class SampleStaffSeeder extends Seeder
                     'email' => 'accountant'.$i.'@dental.com',
                     'phone' => '09140'.str_pad((string) $i, 5, '0', STR_PAD_LEFT),
                     'role_slug' => 'ke_toan',
-                    'join_date' => '2024-05-01',
+                    'join_date' => $joinBase->toDateString(),
                     'status' => 'working',
                     'branch_id' => $branchIds[$branchCode],
                     'gender' => 'male',
@@ -161,7 +165,7 @@ class SampleStaffSeeder extends Seeder
             ['staff_id' => $staff->id, 'profile_role' => 'bac_si'],
             [
                 'status' => ProfessionalProfile::STATUS_APPROVED,
-                'notes' => 'Ho so mau SMP da duyet.',
+                'notes' => 'Hồ sơ chuyên môn đã được thẩm định và phê duyệt.',
                 'submitted_at' => now()->subDays(30),
                 'approved_at' => now()->subDays(28),
                 'approved_by' => $admin?->id,

@@ -11,6 +11,7 @@ import BranchStatsCard from '@/features/work-schedule/components/BranchStatsCard
 import StandardShiftsCard from '@/features/work-schedule/components/StandardShiftsCard';
 import AuditLogCard from '@/features/work-schedule/components/AuditLogCard';
 import ScheduleFormModal from '@/features/work-schedule/components/ScheduleFormModal';
+import ScheduleBulkFormModal from '@/features/work-schedule/components/ScheduleBulkFormModal';
 import CopyWeekModal from '@/features/work-schedule/components/CopyWeekModal';
 import CancelScheduleModal from '@/features/work-schedule/components/CancelScheduleModal';
 import LeaveRequestModal from '@/features/work-schedule/components/LeaveRequestModal';
@@ -27,6 +28,8 @@ const WorkScheduleManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [formInitial, setFormInitial] = useState(null);
   const [formEditing, setFormEditing] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkInitial, setBulkInitial] = useState(null);
   const [copyOpen, setCopyOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState(null);
@@ -36,9 +39,13 @@ const WorkScheduleManagement = () => {
   const [swapTarget, setSwapTarget] = useState(null);
 
   const openCreate = () => {
-    setFormEditing(false);
-    setFormInitial(null);
-    setFormOpen(true);
+    setBulkInitial(null);
+    setBulkOpen(true);
+  };
+
+  const openCreateForCell = (staffId, dateYmd) => {
+    setBulkInitial({ staff_ids: [staffId], work_dates: [dateYmd] });
+    setBulkOpen(true);
   };
 
   const openEdit = (schedule) => {
@@ -104,6 +111,7 @@ const WorkScheduleManagement = () => {
           onPrev={() => ws.goToWeek(-1)}
           onToday={ws.goToday}
           onNext={() => ws.goToWeek(1)}
+          onEmptyCellClick={isAdmin ? openCreateForCell : undefined}
           loading={ws.loading}
         />
 
@@ -149,6 +157,17 @@ const WorkScheduleManagement = () => {
         templates={ws.templates}
         onClose={() => setFormOpen(false)}
         onSubmit={submitForm}
+      />
+
+      <ScheduleBulkFormModal
+        open={bulkOpen}
+        initialData={bulkInitial}
+        staffList={ws.staffList}
+        branches={ws.branches}
+        templates={ws.templates}
+        weekDays={ws.weekDays}
+        onClose={() => setBulkOpen(false)}
+        onSubmit={ws.bulkCreateSchedules}
       />
 
       <CopyWeekModal

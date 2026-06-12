@@ -167,6 +167,22 @@ const useWorkSchedule = () => {
     }
   };
 
+  const bulkCreateSchedules = async (data) => {
+    try {
+      const res = await workScheduleApi.bulkCreate(data);
+      const { created = 0, skipped = 0, conflicts = [] } = res.data || {};
+      toast({
+        title: 'Tạo lịch hàng loạt hoàn tất',
+        description: `Đã tạo ${created} lịch, bỏ qua ${skipped} lịch trùng/không hợp lệ`,
+      });
+      refreshAll();
+      return { ok: true, created, skipped, conflicts };
+    } catch (err) {
+      handleApiError(err, 'Không thể tạo lịch hàng loạt');
+      return { ok: false };
+    }
+  };
+
   const updateSchedule = async (id, data) => {
     try {
       await workScheduleApi.update(id, data);
@@ -287,6 +303,7 @@ const useWorkSchedule = () => {
     goToday,
     refreshAll,
     createSchedule,
+    bulkCreateSchedules,
     updateSchedule,
     cancelSchedule,
     copyWeek,

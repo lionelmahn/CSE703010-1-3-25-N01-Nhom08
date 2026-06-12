@@ -299,6 +299,115 @@ class WorkScheduleService
         ];
     }
 
+    /**
+     * Create schedules for many staff across many dates in one operation.
+     * work_role is derived per-staff from their role_slug (doctors use the
+     * shared $doctor_sub_role). Follows the same skip-conflicts contract as
+     * copyWeek(): with skip_conflicts=true invalid rows are collected and the
+     * rest committed; with false the whole batch rolls back on the first error.
+     *
+     * @return array{created:int, skipped:int, conflicts:array}
+     */
+    public function bulkCreate(array $data, User $actor): array
+    {
+        $staffIds = array_values(array_unique(array_map('intval', $data['staff_ids'])));
+        $workDates = array_values(array_unique(array_map(
+            fn ($d) => Carbon::parse($d)->toDateString(),
+            $data['work_dates']
+        )));
+        $doctorSubRole = $data['doctor_sub_role'] ?? 'doctor_treatment';
+        $skipConflicts = $data['skip_conflicts'] ?? true;
+
+        $staffMap = Staff::whereIn('id', $staffIds)->get()->keyBy('id');
+
+        $created = 0;
+        $skipped = 0;
+        $conflicts = [];
+
+        DB::transaction(function () use (
+            $staffIds, $workDates, $staffMap, $doctorSubRole, $data, $actor,
+            $skipConflicts, &$created, &$skipped, &$conflicts
+        ) {
+            foreach ($staffIds as $staffId) {
+                $staff = $staffMap->get($staffId);
+
+                foreach ($workDates as $date) {
+                    try {
+                        if (! $staff) {
+                            throw ValidationException::withMessages([
+                                'staff_id' => 'Khong tim thay nhan su.',
+                            ]);
+                        }
+
+                        $payload = $this->buildSchedulePayload([
+                            'staff_id' => $staffId,
+                            'branch_id' => $data['branch_id'] ?? null,
+                            'shift_template_id' => $data['shift_template_id'] ?? null,
+                            'work_date' => $date,
+                            'start_time' => $data['start_time'] ?? null,
+                            'end_time' => $data['end_time'] ?? null,
+                            'work_role' => $this->deriveWorkRole($staff, $doctorSubRole),
+                            'room' => $data['room'] ?? null,
+                            'notes' => $data['notes'] ?? null,
+                        ]);
+
+                        $this->validateForStaff($staffId, $payload, null);
+                    } catch (ValidationException $e) {
+                        if ($skipConflicts) {
+                            $skipped++;
+                            $conflicts[] = [
+                                'staff_id' => $staffId,
+                                'work_date' => $date,
+                                'errors' => $e->errors(),
+                            ];
+
+                            continue;
+                        }
+
+                        throw $e;
+                    }
+
+                    WorkSchedule::create(array_merge($payload, [
+                        'status' => $data['status'] ?? WorkSchedule::STATUS_SCHEDULED,
+                        'created_by' => $actor->id,
+                        'updated_by' => $actor->id,
+                    ]));
+                    $created++;
+                }
+            }
+        });
+
+        $this->auditLogService->log($actor, 'schedule.bulk_create', [
+            'staff_ids' => $staffIds,
+            'work_dates' => $workDates,
+            'created' => $created,
+            'skipped' => $skipped,
+        ]);
+
+        return [
+            'created' => $created,
+            'skipped' => $skipped,
+            'conflicts' => $conflicts,
+        ];
+    }
+
+    /**
+     * Map a staff member's role_slug to the work_role used inside a shift.
+     * Mirrors WORK_ROLE_OPTIONS on the frontend; single source of truth on
+     * the server for E4 compatibility.
+     */
+    private function deriveWorkRole(Staff $staff, string $doctorSubRole): string
+    {
+        return match ($staff->role_slug) {
+            'bac_si' => in_array($doctorSubRole, self::DOCTOR_WORK_ROLES, true)
+                ? $doctorSubRole
+                : 'doctor_treatment',
+            'le_tan' => 'reception',
+            'ke_toan' => 'accountant',
+            default => 'support',
+        };
+    }
+
     public function branchStats(string $from, string $to): array
     {
         $branches = Branch::orderBy('name')->get();

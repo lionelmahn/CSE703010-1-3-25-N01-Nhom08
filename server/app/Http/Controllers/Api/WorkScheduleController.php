@@ -63,6 +63,30 @@ class WorkScheduleController extends Controller
         );
     }
 
+    public function bulkStore(Request $request)
+    {
+        $data = $request->validate([
+            'staff_ids' => 'required|array|min:1|max:100',
+            'staff_ids.*' => 'integer|exists:staff,id',
+            'work_dates' => 'required|array|min:1|max:31',
+            'work_dates.*' => 'date',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'shift_template_id' => 'nullable|integer|exists:work_shift_templates,id',
+            'start_time' => 'nullable|date_format:H:i,H:i:s',
+            'end_time' => 'nullable|date_format:H:i,H:i:s',
+            'doctor_sub_role' => 'nullable|in:doctor_treatment,doctor_consult,doctor_surgery',
+            'room' => 'nullable|string|max:120',
+            'notes' => 'nullable|string|max:1000',
+            'status' => 'nullable|in:scheduled,confirmed',
+            'skip_conflicts' => 'nullable|boolean',
+        ]);
+
+        return response()->json(
+            $this->service->bulkCreate($data, $request->user()),
+            201
+        );
+    }
+
     public function copy(Request $request)
     {
         $data = $request->validate([
