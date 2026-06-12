@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { salaryReportApi } from '@/api/salaryReportApi';
@@ -35,6 +35,8 @@ const cleanParams = (filters, page) => {
 
 const SalaryReport = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const didInitFromQuery = useRef(false);
     const { userRole, hasPermission } = useAuth();
     const { toast } = useToast();
 
@@ -66,6 +68,22 @@ const SalaryReport = () => {
             .then(({ data }) => setOptions(data?.data || { branches: [], qualifications: [], statuses: [] }))
             .catch(() => undefined);
     }, []);
+
+    // Drill-down tu UC19: nhan period_month + period_year qua query, ap vao bo loc.
+    useEffect(() => {
+        if (didInitFromQuery.current) return;
+        const month = Number(searchParams.get('period_month'));
+        const year = Number(searchParams.get('period_year'));
+        if (!month && !year) return;
+        didInitFromQuery.current = true;
+        setFilters((prev) => ({
+            ...prev,
+            ...(month ? { period_month: month } : {}),
+            ...(year ? { period_year: year } : {}),
+        }));
+        setPage(1);
+        setSearchParams({}, { replace: true });
+    }, [searchParams, setSearchParams]);
 
     useEffect(() => {
         let active = true;

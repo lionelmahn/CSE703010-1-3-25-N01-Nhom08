@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\ReceptionController;
 use App\Http\Controllers\Api\RefundController;
 use App\Http\Controllers\Api\RevenueReportController;
+use App\Http\Controllers\Api\SalaryAnnualAllReportController;
 use App\Http\Controllers\Api\SalaryAnnualReportController;
 use App\Http\Controllers\Api\SalaryReportController;
 use App\Http\Controllers\Api\SalarySlipController;
@@ -473,6 +474,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/months', [SalaryAnnualReportController::class, 'months']);
             Route::get('/export', [SalaryAnnualReportController::class, 'export'])
                 ->middleware('permission:payroll.salary_report_annual.export,payroll.salary_report_annual.export_own');
+        });
+
+    // UC19 - Bao cao tien luong tat ca bac si trong mot nam (doc tu UC16).
+    // Chi Ke toan/Admin xem (bac si KHONG duoc xem); drill-down sang UC18/UC17/UC16.
+    Route::middleware('permission:payroll.salary_report_annual_all.view')
+        ->prefix('reports/salary-annual-all')->group(function () {
+            Route::get('/options', [SalaryAnnualAllReportController::class, 'options']);
+            Route::get('/summary', [SalaryAnnualAllReportController::class, 'summary']);
+            Route::get('/doctors', [SalaryAnnualAllReportController::class, 'doctors']);
+            Route::get('/months', [SalaryAnnualAllReportController::class, 'months']);
+            Route::get('/matrix', [SalaryAnnualAllReportController::class, 'matrix']);
+            Route::get('/export', [SalaryAnnualAllReportController::class, 'export'])
+                ->middleware('permission:payroll.salary_report_annual_all.export');
         });
 
     // UC14 - Thong ke doanh thu. Chi doc du lieu UC13; export can them quyen.

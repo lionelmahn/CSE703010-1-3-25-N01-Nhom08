@@ -38,6 +38,7 @@ import InvoiceManagement from '@/page/InvoiceManagement';
 import RevenueReport from '@/page/RevenueReport';
 import SalaryReport from '@/page/SalaryReport';
 import SalaryAnnualReport from '@/page/SalaryAnnualReport';
+import SalaryAnnualAllReport from '@/page/SalaryAnnualAllReport';
 import MyAppointments from '@/page/MyAppointments';
 import HealthRecords from '@/page/HealthRecords';
 import MyProfessionalProfile from '@/page/MyProfessionalProfile';
@@ -130,6 +131,7 @@ const AppRouter = () => {
         <Route path="payroll/salary-slips" element={<PermissionRoute permission="payroll.salary_slip.view"><SalarySlipManagement /></PermissionRoute>} />
         <Route path="payroll/salary-report" element={<PermissionRoute permission="payroll.salary_report.view"><SalaryReport /></PermissionRoute>} />
         <Route path="payroll/salary-annual-report" element={<PermissionRoute permission={['payroll.salary_report_annual.view', 'payroll.salary_report_annual.view_own']}><SalaryAnnualReport /></PermissionRoute>} />
+        <Route path="payroll/salary-annual-all-report" element={<PermissionRoute permission="payroll.salary_report_annual_all.view"><SalaryAnnualAllReport /></PermissionRoute>} />
         <Route path="my-professional-profile" element={<MyProfessionalProfile />} />
         <Route path="work-schedules" element={<PermissionRoute permission="schedules.view"><WorkScheduleManagement /></PermissionRoute>} />
         <Route path="my-work-schedule" element={<MyWorkSchedule />} />

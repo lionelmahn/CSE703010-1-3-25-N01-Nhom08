@@ -459,6 +459,27 @@ class PermissionSeeder extends Seeder
             $doctorRole->permissions()->syncWithoutDetaching($uc18OwnIds);
         }
 
+        // UC19 - Bao cao tien luong tat ca bac si trong mot nam (doc tu UC16).
+        // Chi Admin + Ke toan; bac si KHONG duoc xem bao cao luong toan bo bac si.
+        $uc19AnnualAllSlugs = [
+            'payroll.salary_report_annual_all.view' => 'Xem bao cao luong nam toan bo bac si',
+            'payroll.salary_report_annual_all.export' => 'Xuat/in bao cao luong nam toan bo bac si',
+        ];
+        $uc19AnnualAllIds = [];
+        foreach ($uc19AnnualAllSlugs as $slug => $name) {
+            $permission = Permission::updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'module' => 'payroll']
+            );
+            $uc19AnnualAllIds[] = $permission->id;
+        }
+        if ($adminRole) {
+            $adminRole->permissions()->syncWithoutDetaching($uc19AnnualAllIds);
+        }
+        if ($accountantRole) {
+            $accountantRole->permissions()->syncWithoutDetaching($uc19AnnualAllIds);
+        }
+
         $receptionistBillingSlugs = Permission::whereIn('slug', [
             'invoices.view', 'invoices.create', 'invoices.discount', 'invoices.print',
             'payments.view', 'payments.create',

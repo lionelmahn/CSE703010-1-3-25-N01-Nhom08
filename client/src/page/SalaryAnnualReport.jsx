@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { UserRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,8 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 const SalaryAnnualReport = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const didInitFromQuery = useRef(false);
     const { userRole, hasPermission } = useAuth();
     const { toast } = useToast();
 
@@ -70,6 +72,18 @@ const SalaryAnnualReport = () => {
             .then(({ data }) => setOptions(data?.data || { statuses: [], years: [] }))
             .catch(() => undefined);
     }, []);
+
+    // Drill-down tu UC19: nhan staff_id + year qua query, tu chon bac si va nam.
+    useEffect(() => {
+        if (didInitFromQuery.current || selfView) return;
+        const staffId = Number(searchParams.get('staff_id'));
+        if (!staffId) return;
+        didInitFromQuery.current = true;
+        const y = Number(searchParams.get('year')) || CURRENT_YEAR;
+        setDoctor({ id: staffId });
+        setYear(y);
+        setSearchParams({}, { replace: true });
+    }, [searchParams, selfView, setSearchParams]);
 
     useEffect(() => {
         if (!ready) {
